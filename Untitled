@@ -1,0 +1,1 @@
+DATABASE_URL="postgresql://postgres:111111@localhost:5432/calorie_db?schema=public"

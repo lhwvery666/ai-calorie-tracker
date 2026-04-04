@@ -1,65 +1,91 @@
-import Image from "next/image";
+import { getServerSession } from "next-auth"
+import { redirect } from "next/navigation"
+import { authOptions } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { HeaderDateSlider } from "@/components/dashboard/header-date-slider"
+import { DailySummary } from "@/components/dashboard/daily-summary"
+import { AISuggestion } from "@/components/dashboard/ai-suggestion"
+import { MealLog } from "@/components/dashboard/meal-log"
+import { BottomNav } from "@/components/dashboard/bottom-nav"
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) redirect("/login")
+
+  // Resolve user — includes body data needed for onboarding guard + calorie target
+  const user = await prisma.user.findUnique({
+    where:  { email: session.user.email },
+    select: { id: true, targetKcal: true, age: true, weight: true, height: true, gender: true },
+  })
+  if (!user) redirect("/login")
+
+  // Onboarding guard — new users must complete body-data setup before accessing the dashboard
+  if (!user.age || !user.weight || !user.height || !user.gender) redirect("/settings")
+
+  // Today's window: midnight → now (server local time)
+  const now = new Date()
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  // Fetch today's meals, newest first
+  const meals = await prisma.meal.findMany({
+    where: {
+      userId: user.id,
+      createdAt: { gte: startOfDay },
+    },
+    orderBy: { createdAt: "desc" },
+  })
+
+  // Aggregate daily nutrition totals (round to 1 decimal for macros)
+  const totalCalories = meals.reduce((sum, m) => sum + m.calories, 0)
+  const totalProtein  = Math.round(meals.reduce((sum, m) => sum + (m.protein ?? 0), 0) * 10) / 10
+  const totalCarbs    = Math.round(meals.reduce((sum, m) => sum + (m.carbs   ?? 0), 0) * 10) / 10
+  const totalFat      = Math.round(meals.reduce((sum, m) => sum + (m.fat     ?? 0), 0) * 10) / 10
+
+  // Serialize Date objects — Client Components cannot receive Date instances as props
+  const serializedMeals = meals.map((m) => ({
+    id:          m.id,
+    foodName:    m.foodName,
+    calories:    m.calories,
+    protein:     m.protein,
+    carbs:       m.carbs,
+    fat:         m.fat,
+    portionSize: m.portionSize,
+    mealType:    m.mealType,
+    imageUrl:    m.imageUrl,
+    createdAt:   m.createdAt.toISOString(),
+  }))
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="mx-auto min-h-screen relative bg-white dark:bg-zinc-900 max-w-md border-x border-gray-200 dark:border-zinc-800 md:max-w-4xl md:border-x-0 md:p-6 md:pb-24">
+      {/* Header — full-width sticky bar on all screen sizes */}
+      <HeaderDateSlider userName={session.user?.name} />
+
+      {/* Main content — single column on mobile, 12-col grid on desktop */}
+      <main className="pt-4 md:pt-8 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-6 md:gap-10 md:items-start">
+
+        {/* Left column (fixed 320px) — calorie ring + AI suggestion */}
+        <div className="space-y-6">
+          <DailySummary
+            totalCalories={totalCalories}
+            totalProtein={totalProtein}
+            totalCarbs={totalCarbs}
+            totalFat={totalFat}
+            targetKcal={user.targetKcal}
+          />
+          <AISuggestion
+            targetKcal={user.targetKcal}
+            consumedKcal={totalCalories}
+            meals={serializedMeals}
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Right column (fluid) — meal log */}
+        <div className="min-w-0">
+          <MealLog meals={serializedMeals} />
         </div>
+
       </main>
+      <BottomNav />
     </div>
-  );
+  )
 }
