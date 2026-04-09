@@ -1,5 +1,5 @@
 // Pure Server Component — no hooks, no client-only APIs needed
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 
 interface MacroProgressProps {
   label: string
@@ -48,9 +48,22 @@ export function DailySummary({
   const remaining = Math.max(targetKcal - (eaten - burned), 0)
   const progress  = Math.min(((eaten - burned) / targetKcal) * 100, 100)
 
+  // Format today's date in Chinese — e.g. "2026年4月9日"
+  const todayLabel = new Date().toLocaleDateString("zh-CN", {
+    year:  "numeric",
+    month: "long",
+    day:   "numeric",
+  })
+
   return (
     <Card className="mx-4 shadow-md border-gray-100 dark:border-zinc-800">
-      <CardContent className="pt-6">
+      {/* Date header — sits above the ring */}
+      <CardHeader className="pb-0 pt-4 px-6">
+        <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
+          {todayLabel}
+        </p>
+      </CardHeader>
+      <CardContent className="pt-4">
         {/* Circular Progress Ring */}
         <div className="flex flex-col items-center mb-6">
           {/* Stats above ring */}
@@ -95,10 +108,7 @@ export function DailySummary({
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 {remaining.toLocaleString()}
               </span>
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">千卡</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                剩余 / {targetKcal.toLocaleString()} 千卡 TDEE
-              </span>
+              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">千卡剩余</span>
             </div>
           </div>
         </div>

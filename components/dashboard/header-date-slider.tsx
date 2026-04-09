@@ -1,8 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Settings, LogOut, User } from "lucide-react"
+import { Settings, LogOut, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -52,24 +51,6 @@ export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-
-      {/* Date Slider */}
-      <div className="px-4 pb-4">
-        <Card className="flex items-center justify-between p-3 shadow-sm border-gray-100 dark:border-zinc-800">
-          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950">
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex flex-col items-center">
-            <span className="font-medium text-gray-900 dark:text-white">周一, 3月 30日</span>
-            <span className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">
-              查看历史记录
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950">
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </Card>
       </div>
     </div>
   )

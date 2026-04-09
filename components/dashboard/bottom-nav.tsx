@@ -4,6 +4,7 @@ import { useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Camera, Home, LineChart, BookOpenText, UserRound, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { AIConfirmationModal, type EditableFoodAnalysis } from "@/components/dashboard/ai-confirmation-modal"
 import { cn } from "@/lib/utils"
 
 interface NavItemProps {
@@ -46,6 +47,44 @@ export function BottomNav() {
   const pathname = usePathname()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [isSavingMeal, setIsSavingMeal] = useState(false)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null)
+  const [pendingAnalysis, setPendingAnalysis] = useState<EditableFoodAnalysis | null>(null)
+
+  const resetPendingState = () => {
+    setIsConfirmOpen(false)
+    setPendingImagePreview(null)
+    setPendingAnalysis(null)
+  }
+
+  const handleRetake = () => {
+    resetPendingState()
+    // Small delay so the modal finishes closing before the picker opens
+    setTimeout(() => fileInputRef.current?.click(), 150)
+  }
+
+  const handleConfirmSave = async (payload: EditableFoodAnalysis) => {
+    setIsSavingMeal(true)
+    try {
+      const saveRes = await fetch("/api/meals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      const saveJson = (await saveRes.json()) as { success?: boolean; error?: string }
+      if (!saveRes.ok || !saveJson.success) {
+        throw new Error(saveJson.error ?? "保存失败，请稍后重试")
+      }
+      resetPendingState()
+      router.refresh()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "未知错误"
+      alert(`保存失败：${message}`)
+    } finally {
+      setIsSavingMeal(false)
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -79,24 +118,10 @@ export function BottomNav() {
           throw new Error(visionJson.error ?? "AI 识别失败，请稍后重试")
         }
 
-        // Step 2: Persist the recognised meal to the database
-        const saveRes = await fetch("/api/meals", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(visionJson.data),
-        })
-
-        const saveJson = (await saveRes.json()) as { success?: boolean; error?: string }
-
-        if (!saveRes.ok || !saveJson.success) {
-          throw new Error(saveJson.error ?? "保存失败，请稍后重试")
-        }
-
-        const { foodName, calories } = visionJson.data
-        alert(`记录已保存：【${foodName}】 ${calories} kcal`)
-
-        // Step 3: Refresh Server Components to reflect the new meal
-        router.refresh()
+        // Step 2: Show confirmation modal — user may edit fields before saving
+        setPendingImagePreview(base64String)
+        setPendingAnalysis(visionJson.data)
+        setIsConfirmOpen(true)
       } catch (err) {
         const message = err instanceof Error ? err.message : "未知错误"
         alert(`操作失败：${message}`)
@@ -130,8 +155,8 @@ export function BottomNav() {
         <div className="flex justify-center pointer-events-auto">
           <Button
             size="icon"
-            disabled={isAnalyzing}
-            onClick={() => !isAnalyzing && fileInputRef.current?.click()}
+            disabled={isAnalyzing || isSavingMeal}
+            onClick={() => !isAnalyzing && !isSavingMeal && fileInputRef.current?.click()}
             className={cn(
               "h-16 w-16 rounded-full text-white shadow-lg transition-all duration-200",
               isAnalyzing
@@ -203,6 +228,23 @@ export function BottomNav() {
           </div>
         </nav>
       </div>
+      {/* Confirmation modal — mounts fresh for each new image via key prop */}
+      <AIConfirmationModal
+        key={pendingImagePreview ?? "idle"}
+        open={isConfirmOpen}
+        imagePreview={pendingImagePreview}
+        analysis={pendingAnalysis}
+        isSaving={isSavingMeal}
+        onOpenChange={(open) => {
+          // Prevent closing mid-save; otherwise allow backdrop/ESC dismiss
+          if (!isSavingMeal) {
+            if (!open) resetPendingState()
+            else setIsConfirmOpen(true)
+          }
+        }}
+        onRetake={handleRetake}
+        onConfirm={handleConfirmSave}
+      />
     </>
   )
 }

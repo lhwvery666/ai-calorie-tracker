@@ -31,14 +31,14 @@ export default async function StatsPage() {
   const now = new Date()
   const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6) // inclusive of today
 
-  let meals: Array<{ calories: number; createdAt: Date }> = []
+  let meals: Array<{ calories: number; foodName: string; createdAt: Date }> = []
   try {
     meals = await prisma.meal.findMany({
       where: {
         userId: user.id,
         createdAt: { gte: sevenDaysAgo },
       },
-      select: { calories: true, createdAt: true },
+      select: { calories: true, foodName: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     })
   } catch (error) {
@@ -46,19 +46,25 @@ export default async function StatsPage() {
     // Graceful degradation — render empty chart rather than crash
   }
 
-  // Aggregate calories by day (keyed on "MM/DD")
-  const calsByDay = new Map<string, number>()
+  // Aggregate calories AND food names by day (keyed on "MM/DD")
+  const calsByDay  = new Map<string, number>()
+  const foodsByDay = new Map<string, string[]>()
   for (const meal of meals) {
     const key = formatDay(meal.createdAt)
     calsByDay.set(key, (calsByDay.get(key) ?? 0) + meal.calories)
+    const names = foodsByDay.get(key) ?? []
+    names.push(meal.foodName)
+    foodsByDay.set(key, names)
   }
 
-  // Build complete 7-day array, filling missing days with 0
+  // Build complete 7-day array, filling missing days with 0 / empty list
   const chartData = Array.from({ length: 7 }, (_, i) => {
     const day = new Date(sevenDaysAgo)
     day.setDate(sevenDaysAgo.getDate() + i)
     const label = formatDay(day)
-    return { date: label, calories: calsByDay.get(label) ?? 0 }
+    // Keep at most 5 food names to keep the summary concise
+    const foods = (foodsByDay.get(label) ?? []).slice(0, 5)
+    return { date: label, calories: calsByDay.get(label) ?? 0, foods }
   })
 
   // Summary stats
@@ -150,30 +156,43 @@ export default async function StatsPage() {
               const pct = Math.min(Math.round((day.calories / user.targetKcal) * 100), 100)
               const over = day.calories > user.targetKcal
               return (
-                <div key={day.date} className="py-3 flex items-center gap-3">
-                  <span className="w-12 text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
-                    {day.date}
-                  </span>
-                  <div className="flex-1 h-2 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        over ? "bg-rose-400" : "bg-emerald-500"
+                <div key={day.date} className="py-3 flex flex-col gap-1.5">
+                  {/* Row 1: date label + progress bar + calorie count */}
+                  <div className="flex items-center gap-3">
+                    <span className="w-12 text-xs font-medium text-gray-500 dark:text-gray-400 shrink-0">
+                      {day.date}
+                    </span>
+                    <div className="flex-1 h-2 bg-gray-100 dark:bg-zinc-700 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          over ? "bg-rose-400" : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span
+                      className={`w-20 text-right text-sm font-semibold shrink-0 ${
+                        day.calories === 0
+                          ? "text-gray-300 dark:text-zinc-600"
+                          : over
+                          ? "text-rose-500 dark:text-rose-400"
+                          : "text-gray-900 dark:text-white"
                       }`}
-                      style={{ width: `${pct}%` }}
-                    />
+                    >
+                      {day.calories === 0 ? "— " : `${day.calories.toLocaleString()} `}
+                      <span className="text-xs font-normal text-gray-400">kcal</span>
+                    </span>
                   </div>
-                  <span
-                    className={`w-20 text-right text-sm font-semibold shrink-0 ${
-                      day.calories === 0
-                        ? "text-gray-300 dark:text-zinc-600"
-                        : over
-                        ? "text-rose-500 dark:text-rose-400"
-                        : "text-gray-900 dark:text-white"
-                    }`}
-                  >
-                    {day.calories === 0 ? "— " : `${day.calories.toLocaleString()} `}
-                    <span className="text-xs font-normal text-gray-400">kcal</span>
-                  </span>
+
+                  {/* Row 2: food summary — only shown when there are records */}
+                  {day.foods.length > 0 && (
+                    <div className="pl-14 pr-1">
+                      <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">
+                        <span className="font-medium text-gray-500 dark:text-gray-400">吃了：</span>
+                        {day.foods.join("、")}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )
             })}

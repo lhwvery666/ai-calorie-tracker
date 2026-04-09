@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Pencil, ChevronDown, Coffee, Sun, Moon, Cookie } from "lucide-react"
+import Image from "next/image"
+import { Plus, Pencil, ChevronDown, Coffee, Sun, Moon, Cookie, Utensils } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
@@ -26,7 +27,34 @@ interface MealEntry {
   name: string
   weight: string
   calories: number
-  image: string
+  image: string | null   // null = no photo uploaded
+}
+
+// Small rounded image preview — shows the uploaded photo or a styled placeholder icon
+function FoodImagePreview({ src, alt }: { src: string | null; alt: string }) {
+  const [errored, setErrored] = useState(false)
+
+  if (src && !errored) {
+    return (
+      <div className="relative w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800">
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="48px"
+          className="object-cover"
+          onError={() => setErrored(true)}
+        />
+      </div>
+    )
+  }
+
+  // Default placeholder — grey box with a fork-knife icon
+  return (
+    <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center">
+      <Utensils className="h-5 w-5 text-gray-400 dark:text-zinc-500" />
+    </div>
+  )
 }
 
 interface MealSectionProps {
@@ -91,11 +119,7 @@ function MealSection({
                   key={entry.id}
                   className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
-                  <img
-                    src={entry.image}
-                    alt={entry.name}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
+                  <FoodImagePreview src={entry.image} alt={entry.name} />
                   <div className="flex-1">
                     <span className="font-medium text-gray-900 dark:text-white">{entry.name}</span>
                     {entry.weight && (
@@ -136,8 +160,8 @@ const toEntry = (m: MealRecord): MealEntry => ({
   name:     m.foodName,
   weight:   m.portionSize ?? "",
   calories: m.calories,
-  // Use the stored image if available; fall back to a food placeholder
-  image:    m.imageUrl ?? "/placeholder.jpg",
+  // Pass the real URL through; null triggers the placeholder icon in FoodImagePreview
+  image:    m.imageUrl ?? null,
 })
 
 // Format an ISO date string → "HH:MM"
