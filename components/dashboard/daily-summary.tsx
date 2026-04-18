@@ -56,7 +56,7 @@ export function DailySummary({
   })
 
   return (
-    <Card className="mx-4 shadow-md border-gray-100 dark:border-zinc-800">
+    <Card className="mx-4 md:mx-0 shadow-md border-gray-100 dark:border-zinc-800">
       {/* Date header — sits above the ring */}
       <CardHeader className="pb-0 pt-4 px-6">
         <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">

@@ -188,7 +188,7 @@ export function MealLog({ meals }: MealLogProps) {
   ]
 
   return (
-    <div className="px-4 mt-6 pb-32">
+    <div className="px-4 md:px-0 mt-6 pb-32">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">饮食记录</h2>
 
       {/* Global empty state hint — only shown when there are no meals at all */}

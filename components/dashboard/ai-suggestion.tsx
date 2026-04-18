@@ -191,7 +191,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <Card className="mx-4 mt-4 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20">
+    <Card className="mx-4 md:mx-0 mt-4 border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base text-emerald-800 dark:text-emerald-300">
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />

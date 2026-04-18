@@ -54,9 +54,9 @@ export function AIConfirmationModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-md p-0 overflow-hidden border-0 rounded-2xl"
+        className="sm:max-w-md p-0 overflow-hidden border-0 rounded-2xl max-h-[90vh]"
       >
-        <div className="bg-white dark:bg-zinc-900">
+        <div className="bg-white dark:bg-zinc-900 overflow-y-auto max-h-[90vh]">
           {/* ── Image preview ── */}
           <div className="p-4 pb-0">
             <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800">
