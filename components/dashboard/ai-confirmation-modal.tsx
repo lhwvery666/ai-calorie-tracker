@@ -39,7 +39,9 @@ export function AIConfirmationModal({
   onConfirm,
 }: AIConfirmationModalProps) {
   // Local editable copy of items — parent key-prop re-mounts on each new image
-  const [items, setItems] = useState<FoodItem[]>(analysis?.items ?? [])
+  // safeItems guards against undefined/null data flowing in from the API
+  const safeItems = analysis?.items ?? []
+  const [items, setItems] = useState<FoodItem[]>(safeItems)
 
   const totalCalories = Math.round(
     items.reduce((sum, item) => sum + item.calories, 0)

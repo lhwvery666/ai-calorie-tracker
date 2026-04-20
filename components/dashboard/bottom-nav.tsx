@@ -124,8 +124,15 @@ export function BottomNav() {
           error?: string
         }
 
+        // Explicit business-level check — never let a bad payload reach the modal
         if (!visionRes.ok || !visionJson.success) {
-          throw new Error(visionJson.error ?? "AI 识别失败，请稍后重试")
+          toast.error(visionJson.error ?? "Recognition failed. Please try again.")
+          return
+        }
+
+        if (!visionJson.data?.items?.length) {
+          toast.error("No food detected. Please use a clearer photo.")
+          return
         }
 
         // Step 2: Show confirmation modal — user may edit fields before saving
@@ -134,10 +141,10 @@ export function BottomNav() {
         setIsConfirmOpen(true)
       } catch (err) {
         if (err instanceof Error && err.message === "REQUEST_TIMED_OUT") {
-          toast.error("响应太久了，请检查网络并重新上传试一试。")
+          toast.error("Request timed out. Please check your connection and try again.")
         } else {
-          const message = err instanceof Error ? err.message : "未知错误"
-          alert(`Operation failed: ${message}`)
+          const message = err instanceof Error ? err.message : "Unknown error"
+          toast.error(`Operation failed: ${message}`)
         }
       } finally {
         setIsAnalyzing(false)

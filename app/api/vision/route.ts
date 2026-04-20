@@ -64,11 +64,27 @@ export async function POST(req: NextRequest) {
     })
 
     const rawText = result.response.text().trim()
-    const parsed = JSON.parse(rawText) as FoodAnalysisResult
+
+    // Strip any Markdown fences the model may still emit despite responseMimeType
+    const cleanedText = rawText
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim()
+
+    let parsed: FoodAnalysisResult
+    try {
+      parsed = JSON.parse(cleanedText) as FoodAnalysisResult
+    } catch (parseErr) {
+      console.error("[vision] JSON parse failed. Raw text:", cleanedText, parseErr)
+      return NextResponse.json(
+        { success: false, error: "AI response format error — please try again." },
+        { status: 422 }
+      )
+    }
 
     if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
       return NextResponse.json(
-        { error: "图片中未检测到食物，请换一张清晰的食物照片" },
+        { success: false, error: "No food detected. Please use a clearer photo." },
         { status: 422 }
       )
     }
@@ -83,10 +99,10 @@ export async function POST(req: NextRequest) {
       data: { items: parsed.items, total_calories },
     })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "未知错误"
-    console.error("[vision] 处理失败:", message)
+    const message = err instanceof Error ? err.message : "Unknown error"
+    console.error("[vision] Request failed:", message)
     return NextResponse.json(
-      { error: "服务器内部错误", detail: message },
+      { success: false, error: "Server error. Please try again.", detail: message },
       { status: 500 }
     )
   }
