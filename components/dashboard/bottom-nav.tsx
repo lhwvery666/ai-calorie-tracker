@@ -3,9 +3,24 @@
 import { useRef, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Camera, Home, LineChart, BookOpenText, UserRound, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AIConfirmationModal, type EditableFoodAnalysis } from "@/components/dashboard/ai-confirmation-modal"
 import { cn } from "@/lib/utils"
+
+// ── Timeout-aware fetch wrapper ───────────────────────────────────────────────
+function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeout_s: number = 20
+): Promise<Response> {
+  return Promise.race([
+    fetch(input, init),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("REQUEST_TIMED_OUT")), timeout_s * 1000)
+    ),
+  ])
+}
 
 interface NavItemProps {
   icon: React.ReactNode
@@ -101,12 +116,16 @@ export function BottomNav() {
       const base64String = reader.result as string
 
       try {
-        // Step 1: AI vision recognition
-        const visionRes = await fetch("/api/vision", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ image: base64String }),
-        })
+        // Step 1: AI vision recognition（20s 超时兜底）
+        const visionRes = await fetchWithTimeout(
+          "/api/vision",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64String }),
+          },
+          20
+        )
 
         const visionJson = (await visionRes.json()) as {
           success: boolean
@@ -123,8 +142,12 @@ export function BottomNav() {
         setPendingAnalysis(visionJson.data)
         setIsConfirmOpen(true)
       } catch (err) {
-        const message = err instanceof Error ? err.message : "未知错误"
-        alert(`操作失败：${message}`)
+        if (err instanceof Error && err.message === "REQUEST_TIMED_OUT") {
+          toast.error("响应太久了，请检查网络并重新上传试一试。")
+        } else {
+          const message = err instanceof Error ? err.message : "未知错误"
+          alert(`操作失败：${message}`)
+        }
       } finally {
         setIsAnalyzing(false)
       }

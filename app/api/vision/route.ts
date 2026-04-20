@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
+export const maxDuration = 60
+
 // ── Gemini ingredient schema ──────────────────────────────────────────────────
 interface Ingredient {
   id: string
@@ -54,10 +56,7 @@ export async function POST(req: NextRequest) {
 
     // ── 调用 Gemini 1.5 Flash ────────────────────────────────────────────────
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel(
-      { model: "gemini-1.5-flash" },
-      { apiVersion: "v1beta" }
-    )
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
     const result = await model.generateContent({
       contents: [
