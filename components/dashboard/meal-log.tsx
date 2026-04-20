@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Plus, Pencil, ChevronDown, Coffee, Sun, Moon, Cookie, Utensils } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ChevronDown, Coffee, Sun, Moon, Cookie, Utensils } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 
@@ -94,14 +93,6 @@ function MealSection({
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
                 {totalCalories} 千卡
               </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
               <ChevronDown
                 className={cn(
                   "h-5 w-5 text-gray-400 transition-transform duration-200",
@@ -128,24 +119,15 @@ function MealSection({
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {entry.calories} 千卡
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {entry.calories} 千卡
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
             <div className="border-t border-gray-100 dark:border-zinc-800 p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              暂无记录，点击 + 添加食物
+              暂无记录
             </div>
           )}
         </CollapsibleContent>

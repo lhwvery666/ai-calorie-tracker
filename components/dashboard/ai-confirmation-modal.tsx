@@ -2,11 +2,13 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { CheckCircle2, Loader2 } from "lucide-react"
+import { CheckCircle2, Loader2, Flame } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import type { FoodItem, FoodAnalysisResult } from "@/app/api/vision/route"
 
+// ── The shape /api/meals still expects (unchanged) ────────────────────────────
 export interface EditableFoodAnalysis {
   foodName: string
   calories: number
@@ -20,7 +22,7 @@ export interface EditableFoodAnalysis {
 interface AIConfirmationModalProps {
   open: boolean
   imagePreview: string | null
-  analysis: EditableFoodAnalysis | null
+  analysis: FoodAnalysisResult | null
   isSaving: boolean
   onOpenChange: (open: boolean) => void
   onRetake: () => void
@@ -36,115 +38,154 @@ export function AIConfirmationModal({
   onRetake,
   onConfirm,
 }: AIConfirmationModalProps) {
-  // Initialise from the latest analysis; `key` on the parent re-mounts this
-  // component each time a new image is analysed, resetting the fields cleanly.
-  const [foodName, setFoodName] = useState(analysis?.foodName ?? "")
-  const [portionSize, setPortionSize] = useState(analysis?.portionSize || "100g")
+  // Local editable copy of items — parent key-prop re-mounts on each new image
+  const [items, setItems] = useState<FoodItem[]>(analysis?.items ?? [])
+
+  const totalCalories = Math.round(
+    items.reduce((sum, item) => sum + item.calories, 0)
+  )
+
+  const updateItemWeight = (index: number, rawValue: string) => {
+    const newWeight = parseFloat(rawValue)
+    if (isNaN(newWeight) || newWeight < 0) return
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item
+        const newCalories = Math.round((newWeight * item.calories_per_100g) / 100)
+        return { ...item, weight_g: newWeight, calories: newCalories }
+      })
+    )
+  }
 
   const handleConfirm = async () => {
-    if (!analysis) return
-    await onConfirm({
-      ...analysis,
-      foodName: foodName.trim() || analysis.foodName,
-      portionSize: portionSize.trim() || analysis.portionSize || "100g",
-    })
+    if (!analysis || items.length === 0) return
+    const totalWeight = Math.round(items.reduce((s, i) => s + i.weight_g, 0))
+    const payload: EditableFoodAnalysis = {
+      foodName: items.map((i) => i.name).join("、"),
+      calories: totalCalories,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      portionSize: `约 ${totalWeight}g`,
+      confidence: 0.9,
+    }
+    await onConfirm(payload)
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="sm:max-w-md p-0 overflow-hidden border-0 rounded-2xl max-h-[90vh]"
+        className="sm:max-w-md p-0 overflow-hidden border-0 rounded-3xl max-h-[92vh] shadow-2xl"
       >
-        <div className="bg-white dark:bg-zinc-900 overflow-y-auto max-h-[90vh]">
+        <div className="bg-[#f2f2f7] dark:bg-zinc-950 overflow-y-auto max-h-[92vh]">
+
           {/* ── Image preview ── */}
-          <div className="p-4 pb-0">
-            <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-zinc-800">
-              {imagePreview ? (
-                <Image
-                  src={imagePreview}
-                  alt="Food preview"
-                  fill
-                  sizes="(max-width: 640px) 100vw, 448px"
-                  className="object-cover"
-                />
-              ) : (
-                <div className="h-full w-full flex items-center justify-center text-sm text-gray-400 dark:text-zinc-500">
-                  No image
-                </div>
-              )}
-            </div>
+          <div className="relative w-full aspect-[4/3] overflow-hidden">
+            {imagePreview ? (
+              <Image
+                src={imagePreview}
+                alt="Food preview"
+                fill
+                sizes="(max-width: 640px) 100vw, 448px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center bg-zinc-200 dark:bg-zinc-800 text-sm text-gray-400">
+                No image
+              </div>
+            )}
+            {/* Gradient overlay at bottom of image */}
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#f2f2f7] dark:from-zinc-950 to-transparent" />
           </div>
 
-          {/* ── Body ── */}
-          <div className="px-4 pt-4 pb-5 space-y-4">
-            {/* Success badge */}
-            <div className="flex items-center gap-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-3 py-2">
+          <div className="px-4 pb-6 space-y-4 -mt-2">
+
+            {/* ── Success badge ── */}
+            <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-4 py-2.5">
               <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-              <p className="text-sm font-medium">AI 识别成功</p>
+              <p className="text-sm font-semibold">AI 识别成功，共 {items.length} 种食材</p>
             </div>
 
-            {/* Editable fields */}
-            <div className="space-y-3">
-              {/* Food Name */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
-                  Food Name
-                </label>
-                <Input
-                  value={foodName}
-                  onChange={(e) => setFoodName(e.target.value)}
-                  placeholder="请输入食物名称"
-                  className="h-10"
-                />
-              </div>
-
-              {/* Portion */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
-                  Portion
-                </label>
-                <Input
-                  value={portionSize}
-                  onChange={(e) => setPortionSize(e.target.value)}
-                  placeholder="例如 100g"
-                  className="h-10"
-                />
-              </div>
-
-              {/* Calories — read-only display */}
-              <div className="rounded-lg border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-3 py-2.5">
-                <p className="text-xs text-gray-500 dark:text-zinc-400 mb-0.5">Calories</p>
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {analysis?.calories ?? 0} kcal
+            {/* ── Total calories hero card ── */}
+            <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm px-5 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-400 dark:text-zinc-500 font-medium tracking-wide uppercase">
+                  总热量
+                </p>
+                <p className="text-4xl font-bold text-gray-900 dark:text-white mt-0.5 tabular-nums transition-all duration-300">
+                  {totalCalories}
+                  <span className="text-lg font-semibold text-gray-400 dark:text-zinc-500 ml-1">kcal</span>
                 </p>
               </div>
+              <div className="h-14 w-14 rounded-2xl bg-orange-50 dark:bg-orange-950/30 flex items-center justify-center">
+                <Flame className="h-7 w-7 text-orange-500" />
+              </div>
             </div>
 
-            {/* Action buttons */}
+            {/* ── Ingredient list (iOS grouped style) ── */}
+            <div>
+              <p className="text-xs text-gray-400 dark:text-zinc-500 font-semibold uppercase tracking-wide px-1 mb-2">
+                食材明细（可修改重量）
+              </p>
+              <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-zinc-800">
+                {items.map((item, index) => (
+                  <div key={index} className="flex items-center gap-3 px-4 py-3">
+                    {/* Left: name */}
+                    <span className="flex-1 text-sm font-medium text-gray-800 dark:text-zinc-100 truncate">
+                      {item.name}
+                    </span>
+
+                    {/* Center: weight input */}
+                    <div className="flex items-center gap-1 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 px-2.5 py-1.5">
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        value={item.weight_g}
+                        onChange={(e) => updateItemWeight(index, e.target.value)}
+                        className={cn(
+                          "w-14 text-center text-sm font-semibold bg-transparent outline-none",
+                          "text-gray-900 dark:text-white",
+                          "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        )}
+                      />
+                      <span className="text-xs text-gray-400 dark:text-zinc-500 font-medium">g</span>
+                    </div>
+
+                    {/* Right: calories */}
+                    <span className="w-16 text-right text-sm font-semibold text-orange-500 dark:text-orange-400 tabular-nums">
+                      {item.calories} <span className="text-xs font-normal text-gray-400">kcal</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Action buttons ── */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <Button
                 type="button"
                 variant="outline"
-                className="h-10"
+                className="h-12 rounded-2xl text-sm font-semibold border-gray-200 dark:border-zinc-700"
                 onClick={onRetake}
                 disabled={isSaving}
               >
-                Retake
+                重新拍照
               </Button>
               <Button
                 type="button"
-                className="h-10 bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+                className="h-12 rounded-2xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/30"
                 onClick={handleConfirm}
-                disabled={isSaving || !analysis}
+                disabled={isSaving || items.length === 0}
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving…
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    保存中…
                   </>
                 ) : (
-                  "Confirm & Save"
+                  "确认记录"
                 )}
               </Button>
             </div>

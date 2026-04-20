@@ -6,6 +6,7 @@ import { Camera, Home, LineChart, BookOpenText, UserRound, Loader2 } from "lucid
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AIConfirmationModal, type EditableFoodAnalysis } from "@/components/dashboard/ai-confirmation-modal"
+import type { FoodAnalysisResult } from "@/app/api/vision/route"
 import { cn } from "@/lib/utils"
 
 // ── Timeout-aware fetch wrapper ───────────────────────────────────────────────
@@ -29,16 +30,6 @@ interface NavItemProps {
   onClick?: () => void
 }
 
-// Type for the successful /api/vision response payload
-interface FoodAnalysis {
-  foodName: string
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-  portionSize: string
-  confidence: number
-}
 
 function NavItem({ icon, label, active = false, onClick }: NavItemProps) {
   return (
@@ -65,7 +56,7 @@ export function BottomNav() {
   const [isSavingMeal, setIsSavingMeal] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null)
-  const [pendingAnalysis, setPendingAnalysis] = useState<EditableFoodAnalysis | null>(null)
+  const [pendingAnalysis, setPendingAnalysis] = useState<FoodAnalysisResult | null>(null)
 
   const resetPendingState = () => {
     setIsConfirmOpen(false)
@@ -129,7 +120,7 @@ export function BottomNav() {
 
         const visionJson = (await visionRes.json()) as {
           success: boolean
-          data: FoodAnalysis
+          data: FoodAnalysisResult
           error?: string
         }
 

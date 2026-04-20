@@ -3,29 +3,23 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 export const maxDuration = 60
 
-// ── Gemini ingredient schema ──────────────────────────────────────────────────
-interface Ingredient {
-  id: string
+// ── Shared data types (mirrored in ai-confirmation-modal.tsx) ─────────────────
+export interface FoodItem {
   name: string
   weight_g: number
-  kcal_per_100g: number
-}
-
-// ── Frontend-compatible response shape (consumed by AIConfirmationModal) ──────
-interface FoodAnalysis {
-  foodName: string
+  calories_per_100g: number
   calories: number
-  protein: number
-  carbs: number
-  fat: number
-  portionSize: string
-  confidence: number
 }
 
-const PROMPT = `你是一位专业营养师。请仔细分析图片中的所有食物，将每种食材单独拆解列出。
-严格按以下 JSON 数组格式返回，不得包含任何 Markdown 标记或解释文字：
-[{"id":"随机唯一字符串","name":"食材名称","weight_g":估算重量纯数字,"kcal_per_100g":每100g热量纯数字}]
-如果图片中不包含食物，请只返回 []。`
+export interface FoodAnalysisResult {
+  items: FoodItem[]
+  total_calories: number
+}
+
+const PROMPT = `你是一位专业营养师。请仔细分析图片中所有食物，将每种食材单独拆解列出，估算重量与热量。
+严格按以下 JSON 格式返回，绝对不能包含任何 Markdown 标记或解释文字：
+{"items":[{"name":"食材名称","weight_g":估算重量纯数字,"calories_per_100g":每100g热量纯数字,"calories":当前重量对应热量纯数字}],"total_calories":所有食材热量加总纯数字}
+如果图片中不包含食物，请返回 {"items":[],"total_calories":0}。`
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,9 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 提取 base64 data（去掉 "data:image/jpeg;base64," 前缀）
-    const base64Data = image.startsWith("data:")
-      ? image.split(",")[1]
-      : image
+    const base64Data = image.startsWith("data:") ? image.split(",")[1] : image
 
     // 提取 MIME type（默认 jpeg）
     const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/)
@@ -54,7 +46,7 @@ export async function POST(req: NextRequest) {
       | "image/heic"
       | "image/heif"
 
-    // ── 调用 Gemini 1.5 Flash ────────────────────────────────────────────────
+    // ── 调用 Gemini ──────────────────────────────────────────────────────────
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" })
 
@@ -68,43 +60,28 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
-      generationConfig: {
-        responseMimeType: "application/json",
-      },
+      generationConfig: { responseMimeType: "application/json" },
     })
 
     const rawText = result.response.text().trim()
+    const parsed = JSON.parse(rawText) as FoodAnalysisResult
 
-    // ── 解析食材数组 ─────────────────────────────────────────────────────────
-    const ingredients = JSON.parse(rawText) as Ingredient[]
-
-    if (!Array.isArray(ingredients) || ingredients.length === 0) {
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
       return NextResponse.json(
         { error: "图片中未检测到食物，请换一张清晰的食物照片" },
         { status: 422 }
       )
     }
 
-    // ── 聚合为前端所需的 FoodAnalysis 格式 ───────────────────────────────────
-    const totalKcal = Math.round(
-      ingredients.reduce((sum, item) => sum + (item.weight_g * item.kcal_per_100g) / 100, 0)
+    // 以防模型漏算 total_calories，在后端校正一次
+    const total_calories = Math.round(
+      parsed.items.reduce((sum, item) => sum + item.calories, 0)
     )
-    const totalWeight = Math.round(
-      ingredients.reduce((sum, item) => sum + item.weight_g, 0)
-    )
-    const foodName = ingredients.map((i) => i.name).join("、")
 
-    const analysis: FoodAnalysis = {
-      foodName,
-      calories: totalKcal,
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-      portionSize: `约 ${totalWeight}g`,
-      confidence: 0.9,
-    }
-
-    return NextResponse.json({ success: true, data: analysis })
+    return NextResponse.json({
+      success: true,
+      data: { items: parsed.items, total_calories },
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : "未知错误"
     console.error("[vision] 处理失败:", message)
