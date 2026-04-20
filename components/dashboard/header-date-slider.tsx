@@ -1,6 +1,8 @@
 "use client"
 
 import { Settings, LogOut, User } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +18,17 @@ interface HeaderDateSliderProps {
 }
 
 export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
+  const router = useRouter()
+
+  const handleComingSoon = () => {
+    toast("功能开发中，敬请期待...")
+  }
+
+  const handleLogout = () => {
+    localStorage.clear()
+    router.push("/login")
+  }
+
   return (
     <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md dark:bg-zinc-900/90 border-b border-gray-100 dark:border-zinc-800">
       {/* Header */}
@@ -36,16 +49,16 @@ export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={handleComingSoon}>
               <User className="mr-2 h-4 w-4" />
               个人资料
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={handleComingSoon}>
               <Settings className="mr-2 h-4 w-4" />
               设置
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400">
+            <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               退出登录
             </DropdownMenuItem>
