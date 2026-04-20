@@ -4,13 +4,13 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 // Infer mealType from the current server time
+// 05:00-10:59 -> 早餐 | 11:00-15:59 -> 午餐 | 16:00-21:59 -> 晚餐 | 22:00-04:59 -> 加餐
 function getMealType(): string {
   const hour = new Date().getHours()
-  if (hour >= 5 && hour < 10) return "早餐"
-  if (hour >= 10 && hour < 14) return "午餐"
-  if (hour >= 14 && hour < 17) return "下午茶"
-  if (hour >= 17 && hour < 21) return "晚餐"
-  return "零食"
+  if (hour >= 5 && hour < 11) return "早餐"
+  if (hour >= 11 && hour < 16) return "午餐"
+  if (hour >= 16 && hour < 22) return "晚餐"
+  return "加餐"
 }
 
 export async function POST(req: NextRequest) {
