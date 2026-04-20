@@ -52,10 +52,11 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function NumberInput({
-  label, unit, value, placeholder, onChange,
+  label, unit, value, placeholder, onChange, disabled,
 }: {
   label: string; unit: string; value: string; placeholder: string
   onChange: (v: string) => void
+  disabled?: boolean
 }) {
   return (
     <div className="flex-1">
@@ -69,8 +70,12 @@ function NumberInput({
           min={0}
           placeholder={placeholder}
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 pr-12 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
+          className={cn(
+            "w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 pr-12 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition",
+            disabled && "opacity-60 cursor-not-allowed"
+          )}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 dark:text-zinc-500 pointer-events-none">
           {unit}
@@ -84,9 +89,10 @@ function NumberInput({
 
 export default function SettingsPage() {
   const router = useRouter()
-  const [form, setForm]         = useState<FormState>(EMPTY_FORM)
+  const [form, setForm]           = useState<FormState>(EMPTY_FORM)
   const [isFetching, setFetching] = useState(true)
-  const [isLoading, setLoading]  = useState(false)
+  const [isLoading, setLoading]   = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   // Pre-fill from the server on mount
   useEffect(() => {
@@ -129,6 +135,7 @@ export default function SettingsPage() {
       const json = (await res.json()) as { success?: boolean; data?: { targetKcal: number }; error?: string }
       if (!res.ok || !json.success) throw new Error(json.error ?? "保存失败")
 
+      setIsEditing(false)
       alert(`✅ 设置已保存！你的每日目标热量为 ${json.data?.targetKcal} kcal`)
       router.push("/")
       router.refresh()
@@ -158,7 +165,7 @@ export default function SettingsPage() {
           {/* ── Gender ── */}
           <section>
             <SectionTitle>性别</SectionTitle>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn("grid grid-cols-2 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {(["male", "female"] as Gender[]).map((g) => (
                 <button
                   key={g}
@@ -181,10 +188,10 @@ export default function SettingsPage() {
           <section>
             <SectionTitle>身体数据</SectionTitle>
             <div className="space-y-3">
-              <NumberInput label="年龄"    unit="岁" value={form.age}    placeholder="25"   onChange={(v) => set("age",    v)} />
+              <NumberInput label="年龄"    unit="岁" value={form.age}    placeholder="25"   onChange={(v) => set("age",    v)} disabled={!isEditing} />
               <div className="flex gap-3">
-                <NumberInput label="身高" unit="cm" value={form.height} placeholder="170"  onChange={(v) => set("height", v)} />
-                <NumberInput label="体重" unit="kg" value={form.weight} placeholder="65"   onChange={(v) => set("weight", v)} />
+                <NumberInput label="身高" unit="cm" value={form.height} placeholder="170"  onChange={(v) => set("height", v)} disabled={!isEditing} />
+                <NumberInput label="体重" unit="kg" value={form.weight} placeholder="65"   onChange={(v) => set("weight", v)} disabled={!isEditing} />
               </div>
             </div>
           </section>
@@ -192,7 +199,7 @@ export default function SettingsPage() {
           {/* ── Activity level ── */}
           <section>
             <SectionTitle>活动水平</SectionTitle>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn("grid grid-cols-2 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {ACTIVITY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -224,7 +231,7 @@ export default function SettingsPage() {
           {/* ── Goal ── */}
           <section>
             <SectionTitle>目标</SectionTitle>
-            <div className="grid grid-cols-3 gap-3">
+            <div className={cn("grid grid-cols-3 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {GOAL_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -251,18 +258,28 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* ── Submit ── */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
-          >
-            {isLoading ? (
-              <><Loader2 className="h-4 w-4 animate-spin" />保存中...</>
-            ) : (
-              "保存并计算目标热量"
-            )}
-          </button>
+          {/* ── Submit / Unlock ── */}
+          {isEditing ? (
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              {isLoading ? (
+                <><Loader2 className="h-4 w-4 animate-spin" />保存中...</>
+              ) : (
+                "保存并计算目标热量"
+              )}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+            >
+              🔓 解锁并修改资料
+            </button>
+          )}
         </form>
       )}
 
