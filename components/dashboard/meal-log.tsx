@@ -203,7 +203,7 @@ export function MealLog({ meals }: MealLogProps) {
     { key: "早餐", label: "Breakfast", icon: <Coffee className="h-5 w-5" />, records: group("早餐"),           defaultTime: "07:30"    },
     { key: "午餐", label: "Lunch",     icon: <Sun    className="h-5 w-5" />, records: group("午餐"),           defaultTime: "12:30"    },
     { key: "晚餐", label: "Dinner",    icon: <Moon   className="h-5 w-5" />, records: group("晚餐"),           defaultTime: "19:00"    },
-    { key: "零食", label: "Snacks",    icon: <Cookie className="h-5 w-5" />, records: group("零食", "下午茶"), defaultTime: "Anytime"  },
+    { key: "零食", label: "Snacks",    icon: <Cookie className="h-5 w-5" />, records: group("零食", "下午茶", "加餐"), defaultTime: "Anytime"  },
   ]
 
   return (

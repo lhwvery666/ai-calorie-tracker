@@ -76,7 +76,7 @@ export function BottomNav() {
       const saveRes = await fetch("/api/meals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, clientHour: new Date().getHours() }),
       })
       const saveJson = (await saveRes.json()) as { success?: boolean; error?: string }
       if (!saveRes.ok || !saveJson.success) {

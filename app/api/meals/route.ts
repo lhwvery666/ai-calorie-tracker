@@ -3,10 +3,10 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
-// Infer mealType from the current server time
+// Infer mealType from a given hour (0-23).
+// Prefer the client's local hour to avoid UTC timezone mismatch on Vercel.
 // 05:00-10:59 -> 早餐 | 11:00-15:59 -> 午餐 | 16:00-21:59 -> 晚餐 | 22:00-04:59 -> 加餐
-function getMealType(): string {
-  const hour = new Date().getHours()
+function getMealType(hour: number): string {
   if (hour >= 5 && hour < 11) return "早餐"
   if (hour >= 11 && hour < 16) return "午餐"
   if (hour >= 16 && hour < 22) return "晚餐"
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { foodName, calories, protein, carbs, fat, portionSize, confidence } =
+    const { foodName, calories, protein, carbs, fat, portionSize, confidence, clientHour } =
       (await req.json()) as {
         foodName: string
         calories: number
@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         fat: number
         portionSize: string
         confidence: number
+        clientHour?: number
       }
 
     if (!foodName || calories == null) {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
         fat,
         portionSize,
         confidence,
-        mealType: getMealType(),
+        mealType: getMealType(clientHour ?? new Date().getHours()),
       },
     })
 
