@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Sparkles, Loader2, ChefHat, RefreshCw, Flame } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,10 +10,22 @@ interface RecipeGeneratorProps {
   remainingKcal: number
 }
 
+const RECIPE_CACHE_KEY = "calorie_ai_recipe_cache"
+
 export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
   const [recipe, setRecipe] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 组件挂载时从 localStorage 恢复上次的食谱
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(RECIPE_CACHE_KEY)
+      if (cached) setRecipe(cached)
+    } catch {
+      // localStorage 不可用时静默失败
+    }
+  }, [])
 
   const handleGenerate = async () => {
     setIsLoading(true)
@@ -33,7 +45,14 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
         throw new Error(json.error ?? "食谱生成失败，请稍后重试")
       }
 
-      setRecipe(json.recipe ?? "")
+      const recipeText = json.recipe ?? ""
+      setRecipe(recipeText)
+      // 仅存纯文本，无图片字段，安全写入缓存
+      try {
+        localStorage.setItem(RECIPE_CACHE_KEY, recipeText)
+      } catch {
+        // 存储空间不足时静默失败
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "未知错误")
     } finally {
