@@ -163,38 +163,42 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Hidden file input — triggers camera/gallery picker */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      {/* Hidden file input + FAB — 仅首页显示 */}
+      {pathname === "/" && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
 
-      {/* Floating Action Button */}
-      <div className="fixed bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-        <div className="flex justify-center pointer-events-auto">
-          <Button
-            size="icon"
-            disabled={isAnalyzing || isSavingMeal}
-            onClick={() => !isAnalyzing && !isSavingMeal && fileInputRef.current?.click()}
-            className={cn(
-              "h-16 w-16 rounded-full text-white shadow-lg transition-all duration-200",
-              isAnalyzing
-                ? "bg-emerald-400 shadow-emerald-400/30 cursor-not-allowed scale-95"
-                : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
-            )}
-          >
-            {isAnalyzing ? (
-              <Loader2 className="h-7 w-7 animate-spin" />
-            ) : (
-              <Camera className="h-7 w-7" />
-            )}
-            <span className="sr-only">{isAnalyzing ? "AI 识别中..." : "拍照记录"}</span>
-          </Button>
-        </div>
-      </div>
+          {/* Floating Action Button */}
+          <div className="fixed bottom-20 md:bottom-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+            <div className="flex justify-center pointer-events-auto">
+              <Button
+                size="icon"
+                disabled={isAnalyzing || isSavingMeal}
+                onClick={() => !isAnalyzing && !isSavingMeal && fileInputRef.current?.click()}
+                className={cn(
+                  "h-16 w-16 rounded-full text-white shadow-lg transition-all duration-200",
+                  isAnalyzing
+                    ? "bg-emerald-400 shadow-emerald-400/30 cursor-not-allowed scale-95"
+                    : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105"
+                )}
+              >
+                {isAnalyzing ? (
+                  <Loader2 className="h-7 w-7 animate-spin" />
+                ) : (
+                  <Camera className="h-7 w-7" />
+                )}
+                <span className="sr-only">{isAnalyzing ? "AI 识别中..." : "拍照记录"}</span>
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/*
         Bottom Navigation Bar
@@ -233,8 +237,8 @@ export function BottomNav() {
               active={pathname === "/stats"}
               onClick={() => router.push("/stats")}
             />
-            {/* Spacer for FAB — only needed on mobile */}
-            <div className="w-16 md:hidden" />
+            {/* Spacer for FAB — only needed on home/mobile */}
+            {pathname === "/" && <div className="w-16 md:hidden" />}
             <NavItem
               icon={<BookOpenText className="h-6 w-6" />}
               label="食谱"
@@ -250,23 +254,25 @@ export function BottomNav() {
           </div>
         </nav>
       </div>
-      {/* Confirmation modal — mounts fresh for each new image via key prop */}
-      <AIConfirmationModal
-        key={pendingImagePreview ?? "idle"}
-        open={isConfirmOpen}
-        imagePreview={pendingImagePreview}
-        analysis={pendingAnalysis}
-        isSaving={isSavingMeal}
-        onOpenChange={(open) => {
-          // Prevent closing mid-save; otherwise allow backdrop/ESC dismiss
-          if (!isSavingMeal) {
-            if (!open) resetPendingState()
-            else setIsConfirmOpen(true)
-          }
-        }}
-        onRetake={handleRetake}
-        onConfirm={handleConfirmSave}
-      />
+      {/* Confirmation modal — 仅首页挂载 */}
+      {pathname === "/" && (
+        <AIConfirmationModal
+          key={pendingImagePreview ?? "idle"}
+          open={isConfirmOpen}
+          imagePreview={pendingImagePreview}
+          analysis={pendingAnalysis}
+          isSaving={isSavingMeal}
+          onOpenChange={(open) => {
+            // Prevent closing mid-save; otherwise allow backdrop/ESC dismiss
+            if (!isSavingMeal) {
+              if (!open) resetPendingState()
+              else setIsConfirmOpen(true)
+            }
+          }}
+          onRetake={handleRetake}
+          onConfirm={handleConfirmSave}
+        />
+      )}
     </>
   )
 }
