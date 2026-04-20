@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
+import { GoogleGenerativeAI } from "@google/generative-ai"
 
-// Shape of the parsed AI analysis result
+// ── Gemini ingredient schema ──────────────────────────────────────────────────
+interface Ingredient {
+  id: string
+  name: string
+  weight_g: number
+  kcal_per_100g: number
+}
+
+// ── Frontend-compatible response shape (consumed by AIConfirmationModal) ──────
 interface FoodAnalysis {
   foodName: string
   calories: number
@@ -11,17 +20,10 @@ interface FoodAnalysis {
   confidence: number
 }
 
-// Shape of the GLM-4V API response (OpenAI-compatible)
-interface ZhipuChatResponse {
-  choices: {
-    message: {
-      content: string
-    }
-  }[]
-}
-
-const SYSTEM_PROMPT =
-  "你是一个资深的营养学专家和图像识别专家。请精准分析这张图片中的食物。你必须只返回一段纯 JSON 格式的数据，不要包含任何 markdown 标记（如 ```json），不要任何多余的解释文字！ JSON 必须包含以下字段：foodName(菜名，字符串), calories(估算总卡路里，整数), protein(蛋白质克数，浮点数), carbs(碳水克数，浮点数), fat(脂肪克数，浮点数), portionSize(份量描述，字符串，如\"一盘约300g\"), confidence(你的识别准确率置信度，0到1之间的小数)。"
+const PROMPT = `你是一位专业营养师。请仔细分析图片中的所有食物，将每种食材单独拆解列出。
+严格按以下 JSON 数组格式返回，不得包含任何 Markdown 标记或解释文字：
+[{"id":"随机唯一字符串","name":"食材名称","weight_g":估算重量纯数字,"kcal_per_100g":每100g热量纯数字}]
+如果图片中不包含食物，请只返回 []。`
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,74 +33,85 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "缺少 image 字段" }, { status: 400 })
     }
 
-    const apiKey = process.env.ZHIPU_API_KEY
+    const apiKey = process.env.GEMINI_API_KEY
     if (!apiKey) {
-      return NextResponse.json({ error: "服务端 API Key 未配置" }, { status: 500 })
+      return NextResponse.json({ error: "服务端 GEMINI_API_KEY 未配置" }, { status: 500 })
     }
 
-    // Call GLM-4V via the OpenAI-compatible endpoint
-    const zhipuRes = await fetch(
-      "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "glm-4v",
-          messages: [
-            {
-              role: "system",
-              content: SYSTEM_PROMPT,
-            },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image_url",
-                  image_url: {
-                    // Accept both raw base64 and pre-formatted data URIs
-                    url: image.startsWith("data:") ? image : `data:image/jpeg;base64,${image}`,
-                  },
-                },
-                {
-                  type: "text",
-                  text: "请分析这张图片中的食物并返回 JSON。",
-                },
-              ],
-            },
-          ],
-        }),
-      }
+    // 提取 base64 data（去掉 "data:image/jpeg;base64," 前缀）
+    const base64Data = image.startsWith("data:")
+      ? image.split(",")[1]
+      : image
+
+    // 提取 MIME type（默认 jpeg）
+    const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/)
+    const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as
+      | "image/jpeg"
+      | "image/png"
+      | "image/webp"
+      | "image/heic"
+      | "image/heif"
+
+    // ── 调用 Gemini 1.5 Flash ────────────────────────────────────────────────
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel(
+      { model: "gemini-1.5-flash" },
+      { apiVersion: "v1beta" }
     )
 
-    if (!zhipuRes.ok) {
-      const errorText = await zhipuRes.text()
-      console.error("[vision] 智谱 API 错误:", errorText)
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType, data: base64Data } },
+            { text: PROMPT },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+      },
+    })
+
+    const rawText = result.response.text().trim()
+
+    // ── 解析食材数组 ─────────────────────────────────────────────────────────
+    const ingredients = JSON.parse(rawText) as Ingredient[]
+
+    if (!Array.isArray(ingredients) || ingredients.length === 0) {
       return NextResponse.json(
-        { error: "AI 服务请求失败", detail: errorText },
-        { status: 502 }
+        { error: "图片中未检测到食物，请换一张清晰的食物照片" },
+        { status: 422 }
       )
     }
 
-    const zhipuData = (await zhipuRes.json()) as ZhipuChatResponse
-    const rawContent = zhipuData.choices?.[0]?.message?.content ?? ""
+    // ── 聚合为前端所需的 FoodAnalysis 格式 ───────────────────────────────────
+    const totalKcal = Math.round(
+      ingredients.reduce((sum, item) => sum + (item.weight_g * item.kcal_per_100g) / 100, 0)
+    )
+    const totalWeight = Math.round(
+      ingredients.reduce((sum, item) => sum + item.weight_g, 0)
+    )
+    const foodName = ingredients.map((i) => i.name).join("、")
 
-    // Strip markdown code fences the model may wrap around the JSON
-    // e.g. ```json\n{...}\n``` or ```\n{...}\n```
-    const cleanedContent = rawContent
-      .replace(/^```(?:json)?\s*/i, "")  // opening fence + optional "json" tag
-      .replace(/\s*```\s*$/i, "")        // closing fence
-      .trim()
-
-    // Parse the sanitised JSON string returned by the model
-    const analysis = JSON.parse(cleanedContent) as FoodAnalysis
+    const analysis: FoodAnalysis = {
+      foodName,
+      calories: totalKcal,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      portionSize: `约 ${totalWeight}g`,
+      confidence: 0.9,
+    }
 
     return NextResponse.json({ success: true, data: analysis })
   } catch (err) {
     const message = err instanceof Error ? err.message : "未知错误"
     console.error("[vision] 处理失败:", message)
-    return NextResponse.json({ error: "服务器内部错误", detail: message }, { status: 500 })
+    return NextResponse.json(
+      { error: "服务器内部错误", detail: message },
+      { status: 500 }
+    )
   }
 }
