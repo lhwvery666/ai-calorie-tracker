@@ -29,14 +29,14 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError("邮箱或密码错误，请重试")
+        setError("Incorrect email or password. Please try again.")
         return
       }
 
       router.push("/")
       router.refresh() // Ensure server components re-fetch with the new session
     } catch {
-      setError("网络错误，请稍后重试")
+      setError("Network error. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -50,8 +50,8 @@ export default function LoginPage() {
           <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/30">
             <Salad className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">欢迎回来</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">登录你的卡路里追踪账号</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Sign in to your CalorieAI account</p>
         </div>
 
         {/* Card */}
@@ -60,7 +60,7 @@ export default function LoginPage() {
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="email">
-                邮箱
+                Email
               </label>
               <input
                 id="email"
@@ -78,7 +78,7 @@ export default function LoginPage() {
             {/* Password */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">
-                密码
+                Password
               </label>
               <input
                 id="password"
@@ -86,7 +86,7 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                placeholder="输入密码"
+                placeholder="Enter your password"
                 value={form.password}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
@@ -109,10 +109,10 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  登录中...
+                  Signing in…
                 </>
               ) : (
-                "登 录"
+                "Sign In"
               )}
             </button>
           </form>
@@ -120,9 +120,9 @@ export default function LoginPage() {
 
         {/* Register link */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          还没有账号？{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/register" className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">
-            立即注册
+            Sign Up
           </Link>
         </p>
       </div>

@@ -91,7 +91,7 @@ function MealSection({
             </div>
             <div className="flex items-center gap-3">
               <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                {totalCalories} 千卡
+                {totalCalories} kcal
               </span>
               <ChevronDown
                 className={cn(
@@ -120,14 +120,14 @@ function MealSection({
                     )}
                   </div>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {entry.calories} 千卡
+                    {entry.calories} kcal
                   </span>
                 </div>
               ))}
             </div>
           ) : (
             <div className="border-t border-gray-100 dark:border-zinc-800 p-4 text-center text-sm text-gray-500 dark:text-gray-400">
-              暂无记录
+              No entries yet
             </div>
           )}
         </CollapsibleContent>
@@ -148,7 +148,7 @@ const toEntry = (m: MealRecord): MealEntry => ({
 
 // Format an ISO date string → "HH:MM"
 const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString("zh-CN", {
+  new Date(iso).toLocaleTimeString("en-US", {
     hour:   "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -163,22 +163,22 @@ export function MealLog({ meals }: MealLogProps) {
   const group = (...types: string[]) => meals.filter((m) => types.includes(m.mealType))
 
   const sections = [
-    { key: "早餐", icon: <Coffee className="h-5 w-5" />, records: group("早餐"),           defaultTime: "07:30" },
-    { key: "午餐", icon: <Sun    className="h-5 w-5" />, records: group("午餐"),           defaultTime: "12:30" },
-    { key: "晚餐", icon: <Moon   className="h-5 w-5" />, records: group("晚餐"),           defaultTime: "19:00" },
-    { key: "零食", icon: <Cookie className="h-5 w-5" />, records: group("零食", "下午茶"), defaultTime: "随时"  },
+    { key: "早餐", label: "Breakfast", icon: <Coffee className="h-5 w-5" />, records: group("早餐"),           defaultTime: "07:30"    },
+    { key: "午餐", label: "Lunch",     icon: <Sun    className="h-5 w-5" />, records: group("午餐"),           defaultTime: "12:30"    },
+    { key: "晚餐", label: "Dinner",    icon: <Moon   className="h-5 w-5" />, records: group("晚餐"),           defaultTime: "19:00"    },
+    { key: "零食", label: "Snacks",    icon: <Cookie className="h-5 w-5" />, records: group("零食", "下午茶"), defaultTime: "Anytime"  },
   ]
 
   return (
     <div className="px-4 md:px-0 mt-6 pb-32">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">饮食记录</h2>
+      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Today&apos;s Meals</h2>
 
       {/* Global empty state hint — only shown when there are no meals at all */}
       {meals.length === 0 && (
         <div className="text-center py-8 mb-4">
-          <p className="text-base text-gray-400 dark:text-zinc-500">今日暂无饮食记录</p>
+          <p className="text-base text-gray-400 dark:text-zinc-500">No meals logged today</p>
           <p className="text-sm text-gray-400 dark:text-zinc-600 mt-1">
-            点击下方相机按钮，拍照识别食物 📷
+            Tap the camera button below to snap &amp; log a meal 📷
           </p>
         </div>
       )}
@@ -188,7 +188,7 @@ export function MealLog({ meals }: MealLogProps) {
           <MealSection
             key={s.key}
             icon={s.icon}
-            title={s.key}
+            title={s.label}
             // Show the time of the most-recent entry if available
             time={s.records.length > 0 ? formatTime(s.records[0].createdAt) : s.defaultTime}
             totalCalories={s.records.reduce((sum, m) => sum + m.calories, 0)}

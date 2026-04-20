@@ -21,7 +21,7 @@ export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
   const router = useRouter()
 
   const handleComingSoon = () => {
-    toast("功能开发中，敬请期待...")
+    toast("This feature is coming soon — stay tuned!")
   }
 
   const handleLogout = () => {
@@ -34,16 +34,16 @@ export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex flex-col">
-          <span className="text-sm text-gray-500 dark:text-gray-400">欢迎回来，</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Welcome back,</span>
           <span className="text-lg font-semibold text-gray-900 dark:text-white">
-            Hi, {userName ?? "朋友"}! 👋
+            Hi, {userName ?? "there"}! 👋
           </span>
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0 hover:ring-2 hover:ring-emerald-500/20">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Arch" alt="用户头像" />
+                <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Arch" alt="User avatar" />
                 <AvatarFallback className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">AR</AvatarFallback>
               </Avatar>
             </Button>
@@ -51,16 +51,16 @@ export function HeaderDateSlider({ userName }: HeaderDateSliderProps) {
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem className="cursor-pointer" onClick={handleComingSoon}>
               <User className="mr-2 h-4 w-4" />
-              个人资料
+              Profile
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer" onClick={handleComingSoon}>
               <Settings className="mr-2 h-4 w-4" />
-              设置
+              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer text-red-600 dark:text-red-400" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              退出登录
+              Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

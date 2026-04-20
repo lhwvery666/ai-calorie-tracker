@@ -66,7 +66,7 @@ export function AIConfirmationModal({
       protein: 0,
       carbs: 0,
       fat: 0,
-      portionSize: `约 ${totalWeight}g`,
+      portionSize: `~${totalWeight}g`,
       confidence: 0.9,
     }
     await onConfirm(payload)
@@ -104,14 +104,14 @@ export function AIConfirmationModal({
             {/* ── Success badge ── */}
             <div className="flex items-center gap-2 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 px-4 py-2.5">
               <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-              <p className="text-sm font-semibold">AI 识别成功，共 {items.length} 种食材</p>
+              <p className="text-sm font-semibold">AI identified {items.length} ingredient{items.length !== 1 ? "s" : ""}</p>
             </div>
 
             {/* ── Total calories hero card ── */}
             <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm px-5 py-4 flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-400 dark:text-zinc-500 font-medium tracking-wide uppercase">
-                  总热量
+                  Total Calories
                 </p>
                 <p className="text-4xl font-bold text-gray-900 dark:text-white mt-0.5 tabular-nums transition-all duration-300">
                   {totalCalories}
@@ -126,7 +126,7 @@ export function AIConfirmationModal({
             {/* ── Ingredient list (iOS grouped style) ── */}
             <div>
               <p className="text-xs text-gray-400 dark:text-zinc-500 font-semibold uppercase tracking-wide px-1 mb-2">
-                食材明细（可修改重量）
+                Ingredients — edit weight to recalculate
               </p>
               <div className="rounded-2xl bg-white dark:bg-zinc-900 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-zinc-800">
                 {items.map((item, index) => (
@@ -171,7 +171,7 @@ export function AIConfirmationModal({
                 onClick={onRetake}
                 disabled={isSaving}
               >
-                重新拍照
+                Retake
               </Button>
               <Button
                 type="button"
@@ -182,10 +182,10 @@ export function AIConfirmationModal({
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    保存中…
+                    Saving…
                   </>
                 ) : (
-                  "确认记录"
+                  "Confirm & Log"
                 )}
               </Button>
             </div>

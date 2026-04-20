@@ -30,13 +30,13 @@ export default function RegisterPage() {
       const json = (await res.json()) as { success?: boolean; error?: string }
 
       if (!res.ok) {
-        setError(json.error ?? "注册失败，请稍后重试")
+        setError(json.error ?? "Registration failed. Please try again.")
         return
       }
 
       router.push("/login")
     } catch {
-      setError("网络错误，请稍后重试")
+      setError("Network error. Please try again later.")
     } finally {
       setIsLoading(false)
     }
@@ -50,8 +50,8 @@ export default function RegisterPage() {
           <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/30">
             <Salad className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">创建账号</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">开始追踪你的每日饮食</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Create Account</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Start tracking your daily nutrition</p>
         </div>
 
         {/* Card */}
@@ -60,7 +60,7 @@ export default function RegisterPage() {
             {/* Name */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="name">
-                昵称
+                Display Name
               </label>
               <input
                 id="name"
@@ -68,7 +68,7 @@ export default function RegisterPage() {
                 type="text"
                 autoComplete="name"
                 required
-                placeholder="你的名字"
+                placeholder="Your name"
                 value={form.name}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
@@ -78,7 +78,7 @@ export default function RegisterPage() {
             {/* Email */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="email">
-                邮箱
+                Email
               </label>
               <input
                 id="email"
@@ -96,7 +96,7 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="password">
-                密码
+                Password
               </label>
               <input
                 id="password"
@@ -105,7 +105,7 @@ export default function RegisterPage() {
                 autoComplete="new-password"
                 required
                 minLength={6}
-                placeholder="至少 6 位"
+                placeholder="At least 6 characters"
                 value={form.password}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-zinc-500 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition"
@@ -128,10 +128,10 @@ export default function RegisterPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  注册中...
+                  Creating account…
                 </>
               ) : (
-                "注 册"
+                "Sign Up"
               )}
             </button>
           </form>
@@ -139,9 +139,9 @@ export default function RegisterPage() {
 
         {/* Login link */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
-          已有账号？{" "}
+          Already have an account?{" "}
           <Link href="/login" className="text-emerald-600 dark:text-emerald-400 font-medium hover:underline">
-            立即登录
+            Sign In
           </Link>
         </p>
       </div>

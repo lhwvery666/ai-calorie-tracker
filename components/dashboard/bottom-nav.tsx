@@ -86,7 +86,7 @@ export function BottomNav() {
       router.refresh()
     } catch (err) {
       const message = err instanceof Error ? err.message : "未知错误"
-      alert(`保存失败：${message}`)
+      alert(`Failed to save: ${message}`)
     } finally {
       setIsSavingMeal(false)
     }
@@ -137,7 +137,7 @@ export function BottomNav() {
           toast.error("响应太久了，请检查网络并重新上传试一试。")
         } else {
           const message = err instanceof Error ? err.message : "未知错误"
-          alert(`操作失败：${message}`)
+          alert(`Operation failed: ${message}`)
         }
       } finally {
         setIsAnalyzing(false)
@@ -145,7 +145,7 @@ export function BottomNav() {
     }
 
     reader.onerror = () => {
-      alert("图片读取失败，请重试")
+      alert("Failed to read image. Please try again.")
       setIsAnalyzing(false)
     }
 
@@ -184,7 +184,7 @@ export function BottomNav() {
                 ) : (
                   <Camera className="h-7 w-7" />
                 )}
-                <span className="sr-only">{isAnalyzing ? "AI 识别中..." : "拍照记录"}</span>
+                <span className="sr-only">{isAnalyzing ? "Analyzing…" : "Snap & Log"}</span>
               </Button>
             </div>
           </div>
@@ -218,13 +218,13 @@ export function BottomNav() {
           <div className="flex items-center justify-around md:justify-center md:gap-2 py-2">
             <NavItem
               icon={<Home className="h-6 w-6" />}
-              label="首页"
+              label="Home"
               active={pathname === "/"}
               onClick={() => router.push("/")}
             />
             <NavItem
               icon={<LineChart className="h-6 w-6" />}
-              label="统计"
+              label="Stats"
               active={pathname === "/stats"}
               onClick={() => router.push("/stats")}
             />
@@ -232,13 +232,13 @@ export function BottomNav() {
             {pathname === "/" && <div className="w-16 md:hidden" />}
             <NavItem
               icon={<BookOpenText className="h-6 w-6" />}
-              label="食谱"
+              label="Recipes"
               active={pathname === "/recipes"}
               onClick={() => router.push("/recipes")}
             />
             <NavItem
               icon={<UserRound className="h-6 w-6" />}
-              label="我的"
+              label="Profile"
               active={pathname === "/settings"}
               onClick={() => router.push("/settings")}
             />

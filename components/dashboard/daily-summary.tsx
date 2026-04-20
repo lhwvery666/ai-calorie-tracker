@@ -49,7 +49,7 @@ export function DailySummary({
   const progress  = Math.min(((eaten - burned) / targetKcal) * 100, 100)
 
   // Format today's date in Chinese — e.g. "2026年4月9日"
-  const todayLabel = new Date().toLocaleDateString("zh-CN", {
+  const todayLabel = new Date().toLocaleDateString("en-US", {
     year:  "numeric",
     month: "long",
     day:   "numeric",
@@ -69,11 +69,11 @@ export function DailySummary({
           {/* Stats above ring */}
           <div className="flex items-center gap-4 mb-4 text-sm">
             <span className="text-gray-500 dark:text-gray-400">
-              已摄入: <span className="font-semibold text-gray-900 dark:text-white">{eaten}</span>
+              Eaten: <span className="font-semibold text-gray-900 dark:text-white">{eaten}</span>
             </span>
             <span className="text-gray-300 dark:text-zinc-600">|</span>
             <span className="text-gray-500 dark:text-gray-400">
-              已消耗: <span className="font-semibold text-gray-900 dark:text-white">{burned}</span>
+              Burned: <span className="font-semibold text-gray-900 dark:text-white">{burned}</span>
             </span>
           </div>
 
@@ -108,16 +108,16 @@ export function DailySummary({
               <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 {remaining.toLocaleString()}
               </span>
-              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">千卡剩余</span>
+              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">kcal left</span>
             </div>
           </div>
         </div>
 
         {/* Macros Grid */}
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
-          <MacroProgress label="蛋白质" current={totalProtein} target={120} color="bg-rose-500" />
-          <MacroProgress label="碳水"   current={totalCarbs}   target={200} color="bg-blue-500" />
-          <MacroProgress label="脂肪"   current={totalFat}     target={60}  color="bg-amber-500" />
+          <MacroProgress label="Protein" current={totalProtein} target={120} color="bg-rose-500" />
+          <MacroProgress label="Carbs"   current={totalCarbs}   target={200} color="bg-blue-500" />
+          <MacroProgress label="Fat"     current={totalFat}     target={60}  color="bg-amber-500" />
         </div>
       </CardContent>
     </Card>

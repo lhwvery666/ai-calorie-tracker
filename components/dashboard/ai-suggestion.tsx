@@ -121,7 +121,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
     )
       .catch((err) => {
         if ((err as Error).name !== "AbortError") {
-          setGreeting("今天吃得不错，继续保持均衡饮食！")
+          setGreeting("Great eating today — keep up the balanced diet!")
         }
       })
       .finally(() => setGreetingLoading(false))
@@ -172,7 +172,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
       if ((err as Error).name !== "AbortError") {
         setChatMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "出了点小问题，再问我一次吧～" },
+          { role: "assistant", content: "Something went wrong — please try asking again." },
         ])
       }
     } finally {
@@ -195,7 +195,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base text-emerald-800 dark:text-emerald-300">
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-          今日 AI 建议
+          AI Nutrition Coach
         </CardTitle>
       </CardHeader>
 
@@ -206,7 +206,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
           {isGreetingLoading && !greeting ? (
             <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
               <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-              <span>AI 营养师正在分析中…</span>
+              <span>Analyzing your nutrition…</span>
             </div>
           ) : (
             <p className="text-sm text-emerald-700 dark:text-emerald-300/80 leading-relaxed">
@@ -234,12 +234,12 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
               {showChat ? (
                 <>
                   <ChevronUp className="h-3.5 w-3.5" />
-                  收起追问
+                  Collapse
                 </>
               ) : (
                 <>
                   <MessageCircle className="h-3.5 w-3.5" />
-                  追问 AI 营养师
+                  Ask a follow-up
                 </>
               )}
             </button>
@@ -250,7 +250,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
                 className="flex items-center gap-1 text-xs text-gray-400 dark:text-zinc-500 hover:text-red-400 transition-colors"
               >
                 <Trash2 className="h-3 w-3" />
-                清空
+                Clear
               </button>
             )}
           </div>
@@ -294,7 +294,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
                       ) : (
                         <span className="flex items-center gap-1.5 text-emerald-500">
                           <Loader2 className="h-3 w-3 animate-spin" />
-                          思考中…
+                          Thinking…
                         </span>
                       )}
                     </div>
@@ -314,7 +314,7 @@ export function AISuggestion({ targetKcal, consumedKcal, meals }: AISuggestionPr
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="问问 AI 营养师…"
+                placeholder="Ask your AI nutrition coach…"
                 disabled={isStreaming}
                 className="flex-1 text-xs rounded-full border border-emerald-200 dark:border-emerald-800 bg-white/80 dark:bg-zinc-800/80 px-4 py-2 outline-none focus:border-emerald-400 dark:focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400/20 placeholder-emerald-300 dark:placeholder-emerald-700 text-gray-700 dark:text-gray-300 transition-all disabled:opacity-50"
               />

@@ -14,16 +14,16 @@ type ActivityLevel = "sedentary" | "light" | "moderate" | "active"
 type Goal          = "lose" | "maintain" | "gain"
 
 const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; desc: string }[] = [
-  { value: "sedentary", label: "久坐",   desc: "几乎不运动" },
-  { value: "light",     label: "轻度",   desc: "每周 1-3 次" },
-  { value: "moderate",  label: "中度",   desc: "每周 3-5 次" },
-  { value: "active",    label: "重度",   desc: "每天运动" },
+  { value: "sedentary", label: "Sedentary", desc: "Little or no exercise"   },
+  { value: "light",     label: "Light",     desc: "1–3 days / week"         },
+  { value: "moderate",  label: "Moderate",  desc: "3–5 days / week"         },
+  { value: "active",    label: "Very Active", desc: "Exercise every day"    },
 ]
 
 const GOAL_OPTIONS: { value: Goal; label: string; icon: ElementType }[] = [
-  { value: "lose",     label: "减脂", icon: Flame    },
-  { value: "maintain", label: "维持", icon: Scale    },
-  { value: "gain",     label: "增肌", icon: Dumbbell },
+  { value: "lose",     label: "Lose Weight", icon: Flame    },
+  { value: "maintain", label: "Maintain",    icon: Scale    },
+  { value: "gain",     label: "Build Muscle", icon: Dumbbell },
 ]
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -132,12 +132,12 @@ export default function SettingsPage() {
         }),
       })
       const json = (await res.json()) as { success?: boolean; data?: { targetKcal: number }; error?: string }
-      if (!res.ok || !json.success) throw new Error(json.error ?? "保存失败")
+      if (!res.ok || !json.success) throw new Error(json.error ?? "Save failed")
 
       setIsEditing(false)
-      toast.success(`资料修改成功！每日目标热量 ${json.data?.targetKcal} kcal`)
+      toast.success(`Profile updated! Daily calorie target: ${json.data?.targetKcal} kcal`)
     } catch (err) {
-      toast.error(`保存失败：${err instanceof Error ? err.message : "未知错误"}`)
+      toast.error(`Save failed: ${err instanceof Error ? err.message : "Unknown error"}`)
     } finally {
       setLoading(false)
     }
@@ -149,7 +149,7 @@ export default function SettingsPage() {
       {/* ── Sticky header ── */}
       <header className="sticky top-0 z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2 px-4 py-4">
         <UserRound className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">个人设置</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">My Profile</h1>
       </header>
 
       {isFetching ? (
@@ -161,11 +161,11 @@ export default function SettingsPage() {
 
           {/* ── Gender ── */}
           <section>
-            <SectionTitle>性别</SectionTitle>
+            <SectionTitle>Gender</SectionTitle>
             <div className={cn("grid grid-cols-2 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {([
-                { value: "male"   as Gender, label: "男", Icon: User  },
-                { value: "female" as Gender, label: "女", Icon: Venus },
+                { value: "male"   as Gender, label: "Male",   Icon: User  },
+                { value: "female" as Gender, label: "Female", Icon: Venus },
               ]).map(({ value: g, label, Icon }) => {
                 const selected = form.gender === g
                 return (
@@ -198,19 +198,19 @@ export default function SettingsPage() {
 
           {/* ── Body metrics ── */}
           <section>
-            <SectionTitle>身体数据</SectionTitle>
+            <SectionTitle>Body Stats</SectionTitle>
             <div className="space-y-3">
-              <NumberInput label="年龄"    unit="岁" value={form.age}    placeholder="25"   onChange={(v) => set("age",    v)} disabled={!isEditing} />
+              <NumberInput label="Age"    unit="yrs" value={form.age}    placeholder="25"   onChange={(v) => set("age",    v)} disabled={!isEditing} />
               <div className="flex gap-3">
-                <NumberInput label="身高" unit="cm" value={form.height} placeholder="170"  onChange={(v) => set("height", v)} disabled={!isEditing} />
-                <NumberInput label="体重" unit="kg" value={form.weight} placeholder="65"   onChange={(v) => set("weight", v)} disabled={!isEditing} />
+                <NumberInput label="Height" unit="cm" value={form.height} placeholder="170"  onChange={(v) => set("height", v)} disabled={!isEditing} />
+                <NumberInput label="Weight" unit="kg" value={form.weight} placeholder="65"   onChange={(v) => set("weight", v)} disabled={!isEditing} />
               </div>
             </div>
           </section>
 
           {/* ── Activity level ── */}
           <section>
-            <SectionTitle>活动水平</SectionTitle>
+            <SectionTitle>Activity Level</SectionTitle>
             <div className={cn("grid grid-cols-2 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {ACTIVITY_OPTIONS.map((opt) => (
                 <button
@@ -242,7 +242,7 @@ export default function SettingsPage() {
 
           {/* ── Goal ── */}
           <section>
-            <SectionTitle>目标</SectionTitle>
+            <SectionTitle>Goal</SectionTitle>
             <div className={cn("grid grid-cols-3 gap-3", !isEditing && "pointer-events-none opacity-80")}>
               {GOAL_OPTIONS.map((opt) => {
                 const selected = form.goal === opt.value
@@ -283,9 +283,9 @@ export default function SettingsPage() {
               className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-400 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               {isLoading ? (
-                <><Loader2 className="h-4 w-4 animate-spin" />保存中...</>
+                <><Loader2 className="h-4 w-4 animate-spin" />Saving…</>
               ) : (
-                "保存并计算目标热量"
+                "Save & Calculate Target"
               )}
             </button>
           ) : (
@@ -294,7 +294,7 @@ export default function SettingsPage() {
               onClick={(e) => { e.preventDefault(); setIsEditing(true) }}
               className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
-              🔓 解锁并修改资料
+              🔓 Unlock & Edit
             </button>
           )}
         </form>
@@ -307,7 +307,7 @@ export default function SettingsPage() {
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="w-full rounded-xl border border-red-200 dark:border-red-900 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-medium py-3 text-sm transition-colors"
         >
-          退出登录
+          Sign Out
         </button>
       </div>
 
