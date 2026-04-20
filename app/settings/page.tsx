@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ElementType } from "react"
 import { signOut } from "next-auth/react"
 import { toast } from "sonner"
-import { Loader2, UserRound } from "lucide-react"
+import { Loader2, UserRound, User, Venus, Flame, Scale, Dumbbell } from "lucide-react"
 import { BottomNav } from "@/components/dashboard/bottom-nav"
 import { cn } from "@/lib/utils"
 
@@ -20,10 +20,10 @@ const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; desc: string }[] 
   { value: "active",    label: "重度",   desc: "每天运动" },
 ]
 
-const GOAL_OPTIONS: { value: Goal; label: string; emoji: string }[] = [
-  { value: "lose",     label: "减脂", emoji: "🔥" },
-  { value: "maintain", label: "维持", emoji: "⚖️" },
-  { value: "gain",     label: "增肌", emoji: "💪" },
+const GOAL_OPTIONS: { value: Goal; label: string; icon: ElementType }[] = [
+  { value: "lose",     label: "减脂", icon: Flame    },
+  { value: "maintain", label: "维持", icon: Scale    },
+  { value: "gain",     label: "增肌", icon: Dumbbell },
 ]
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -163,21 +163,36 @@ export default function SettingsPage() {
           <section>
             <SectionTitle>性别</SectionTitle>
             <div className={cn("grid grid-cols-2 gap-3", !isEditing && "pointer-events-none opacity-80")}>
-              {(["male", "female"] as Gender[]).map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  onClick={() => set("gender", g)}
-                  className={cn(
-                    "rounded-xl border py-3 text-sm font-medium transition-all",
-                    form.gender === g
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
-                      : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-600 dark:text-gray-400 hover:border-gray-300"
-                  )}
-                >
-                  {g === "male" ? "👦 男" : "👧 女"}
-                </button>
-              ))}
+              {([
+                { value: "male"   as Gender, label: "男", Icon: User  },
+                { value: "female" as Gender, label: "女", Icon: Venus },
+              ]).map(({ value: g, label, Icon }) => {
+                const selected = form.gender === g
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => set("gender", g)}
+                    className={cn(
+                      "rounded-2xl border p-4 flex flex-col items-center justify-center gap-2 transition-all duration-200",
+                      selected
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                        : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-600"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-8 h-8",
+                      selected ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-zinc-500"
+                    )} />
+                    <span className={cn(
+                      "text-sm",
+                      selected ? "font-bold text-emerald-700 dark:text-emerald-400" : "font-medium text-gray-600 dark:text-gray-400"
+                    )}>
+                      {label}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </section>
 
@@ -229,29 +244,34 @@ export default function SettingsPage() {
           <section>
             <SectionTitle>目标</SectionTitle>
             <div className={cn("grid grid-cols-3 gap-3", !isEditing && "pointer-events-none opacity-80")}>
-              {GOAL_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => set("goal", opt.value)}
-                  className={cn(
-                    "rounded-xl border py-3 flex flex-col items-center gap-1 transition-all",
-                    form.goal === opt.value
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                      : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-gray-300"
-                  )}
-                >
-                  <span className="text-xl">{opt.emoji}</span>
-                  <span className={cn(
-                    "text-sm font-medium",
-                    form.goal === opt.value
-                      ? "text-emerald-700 dark:text-emerald-400"
-                      : "text-gray-700 dark:text-gray-300"
-                  )}>
-                    {opt.label}
-                  </span>
-                </button>
-              ))}
+              {GOAL_OPTIONS.map((opt) => {
+                const selected = form.goal === opt.value
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => set("goal", opt.value)}
+                    className={cn(
+                      "rounded-2xl border p-4 flex flex-col items-center justify-center gap-2 transition-all duration-200",
+                      selected
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
+                        : "border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-600"
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-8 h-8",
+                      selected ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400 dark:text-zinc-500"
+                    )} />
+                    <span className={cn(
+                      "text-sm",
+                      selected ? "font-bold text-emerald-700 dark:text-emerald-400" : "font-medium text-gray-700 dark:text-gray-300"
+                    )}>
+                      {opt.label}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </section>
 
