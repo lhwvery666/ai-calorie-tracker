@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
+import { toast } from "sonner"
 import { Loader2, UserRound } from "lucide-react"
 import { BottomNav } from "@/components/dashboard/bottom-nav"
 import { cn } from "@/lib/utils"
@@ -88,7 +88,6 @@ function NumberInput({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const router = useRouter()
   const [form, setForm]           = useState<FormState>(EMPTY_FORM)
   const [isFetching, setFetching] = useState(true)
   const [isLoading, setLoading]   = useState(false)
@@ -136,11 +135,9 @@ export default function SettingsPage() {
       if (!res.ok || !json.success) throw new Error(json.error ?? "保存失败")
 
       setIsEditing(false)
-      alert(`✅ 设置已保存！你的每日目标热量为 ${json.data?.targetKcal} kcal`)
-      router.push("/")
-      router.refresh()
+      toast.success(`资料修改成功！每日目标热量 ${json.data?.targetKcal} kcal`)
     } catch (err) {
-      alert(`保存失败：${err instanceof Error ? err.message : "未知错误"}`)
+      toast.error(`保存失败：${err instanceof Error ? err.message : "未知错误"}`)
     } finally {
       setLoading(false)
     }
