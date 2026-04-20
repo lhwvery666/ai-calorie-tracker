@@ -274,7 +274,7 @@ export default function SettingsPage() {
           ) : (
             <button
               type="button"
-              onClick={() => setIsEditing(true)}
+              onClick={(e) => { e.preventDefault(); setIsEditing(true) }}
               className="w-full rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               🔓 解锁并修改资料
