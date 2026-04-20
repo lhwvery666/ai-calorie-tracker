@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import Image from "next/image"
-import { ChevronDown, Coffee, Sun, Moon, Cookie, Utensils } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ChevronDown, Coffee, Sun, Moon, Cookie, Utensils, Trash2 } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 
@@ -63,6 +64,8 @@ interface MealSectionProps {
   totalCalories: number
   entries: MealEntry[]
   defaultOpen?: boolean
+  onDelete: (id: string) => void
+  deletingId: string | null
 }
 
 function MealSection({
@@ -72,6 +75,8 @@ function MealSection({
   totalCalories,
   entries,
   defaultOpen = false,
+  onDelete,
+  deletingId,
 }: MealSectionProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
 
@@ -111,7 +116,7 @@ function MealSection({
                   className="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                 >
                   <FoodImagePreview src={entry.image} alt={entry.name} />
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <span className="font-medium text-gray-900 dark:text-white">{entry.name}</span>
                     {entry.weight && (
                       <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
@@ -119,9 +124,24 @@ function MealSection({
                       </span>
                     )}
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">
+                  <span className="font-semibold text-gray-900 dark:text-white shrink-0">
                     {entry.calories} kcal
                   </span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onDelete(entry.id) }}
+                    disabled={deletingId === entry.id}
+                    className={cn(
+                      "shrink-0 p-1 rounded-lg transition-all duration-200",
+                      "text-gray-300 dark:text-zinc-600",
+                      "hover:text-rose-500 hover:bg-rose-50 dark:hover:text-rose-400 dark:hover:bg-rose-950/30",
+                      "md:opacity-30 md:hover:opacity-100",
+                      deletingId === entry.id && "opacity-50 cursor-not-allowed"
+                    )}
+                    aria-label={`Delete ${entry.name}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -159,6 +179,23 @@ interface MealLogProps {
 }
 
 export function MealLog({ meals }: MealLogProps) {
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    try {
+      const res = await fetch(`/api/meals/${id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Delete failed")
+      startTransition(() => router.refresh())
+    } catch {
+      // silent — icon just returns to normal
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   // Group helper — maps one or more mealType values to a section
   const group = (...types: string[]) => meals.filter((m) => types.includes(m.mealType))
 
@@ -189,12 +226,12 @@ export function MealLog({ meals }: MealLogProps) {
             key={s.key}
             icon={s.icon}
             title={s.label}
-            // Show the time of the most-recent entry if available
             time={s.records.length > 0 ? formatTime(s.records[0].createdAt) : s.defaultTime}
             totalCalories={s.records.reduce((sum, m) => sum + m.calories, 0)}
             entries={s.records.map(toEntry)}
-            // Auto-expand sections that have data
             defaultOpen={s.records.length > 0}
+            onDelete={handleDelete}
+            deletingId={deletingId}
           />
         ))}
       </div>

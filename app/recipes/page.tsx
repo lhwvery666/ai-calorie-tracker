@@ -44,18 +44,18 @@ export default async function RecipesPage() {
       {/* Page Header */}
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md dark:bg-zinc-900/90 border-b border-gray-100 dark:border-zinc-800 px-4 py-4 flex items-center gap-2">
         <ChefHat className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">AI 食谱定制</h1>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">AI Meal Planner</h1>
         <span className="ml-auto text-sm text-gray-400 dark:text-gray-500">
-          目标 {user.targetKcal.toLocaleString()} kcal
+          Target {user.targetKcal.toLocaleString()} kcal
         </span>
       </div>
 
       {/* Main Content */}
       <main className="p-4 md:p-8 md:max-w-2xl md:mx-auto pb-36 md:pb-40">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">今天还能吃什么？</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">What can I eat today?</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            告诉 AI 你的剩余热量，让米其林主厨为你量身定制一餐 🍽️
+            Share your remaining calories and let your AI chef craft the perfect meal 🍽️
           </p>
         </div>
 

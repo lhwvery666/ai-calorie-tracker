@@ -42,7 +42,7 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
       const json = (await res.json()) as { success?: boolean; recipe?: string; error?: string }
 
       if (!res.ok || !json.success) {
-        throw new Error(json.error ?? "食谱生成失败，请稍后重试")
+        throw new Error(json.error ?? "Failed to generate recipe. Please try again.")
       }
 
       const recipeText = json.recipe ?? ""
@@ -54,7 +54,7 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
         // 存储空间不足时静默失败
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "未知错误")
+      setError(err instanceof Error ? err.message : "Unknown error")
     } finally {
       setIsLoading(false)
     }
@@ -92,7 +92,7 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
             />
           </div>
           <div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">今日剩余热量</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Remaining Today</p>
             <p
               className={cn(
                 "text-2xl font-bold",
@@ -101,11 +101,11 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
                   : "text-emerald-600 dark:text-emerald-400"
               )}
             >
-              {isOverBudget ? "已超标" : `${remainingKcal.toLocaleString()} kcal`}
+              {isOverBudget ? "Over Budget" : `${remainingKcal.toLocaleString()} kcal`}
             </p>
             {isOverBudget && (
               <p className="text-xs text-rose-400 dark:text-rose-500 mt-0.5">
-                AI 会为你推荐低卡小食～
+                AI will suggest light, low-cal options for you
               </p>
             )}
           </div>
@@ -127,17 +127,17 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            主厨正在思考中…
+            Chef is thinking…
           </>
         ) : recipe ? (
           <>
             <RefreshCw className="mr-2 h-5 w-5" />
-            换一个食谱
+            Try Another Recipe
           </>
         ) : (
           <>
             <Sparkles className="mr-2 h-5 w-5" />
-            让 AI 为我定制一餐
+            Generate My Meal Plan
           </>
         )}
       </Button>
@@ -155,7 +155,7 @@ export function RecipeGenerator({ remainingKcal }: RecipeGeneratorProps) {
               <ChefHat className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <CardTitle className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-              AI 主厨推荐
+              AI Chef&apos;s Recommendation
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { CheckCircle2, Loader2, Flame } from "lucide-react"
+import { CheckCircle2, Loader2, Flame, XCircle } from "lucide-react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -44,6 +44,10 @@ export function AIConfirmationModal({
   const totalCalories = Math.round(
     items.reduce((sum, item) => sum + item.calories, 0)
   )
+
+  const removeItem = (index: number) => {
+    setItems((prev) => prev.filter((_, i) => i !== index))
+  }
 
   const updateItemWeight = (index: number, rawValue: string) => {
     const newWeight = parseFloat(rawValue)
@@ -157,6 +161,16 @@ export function AIConfirmationModal({
                     <span className="w-16 text-right text-sm font-semibold text-orange-500 dark:text-orange-400 tabular-nums">
                       {item.calories} <span className="text-xs font-normal text-gray-400">kcal</span>
                     </span>
+
+                    {/* Delete item */}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="group ml-1 shrink-0 text-gray-300 dark:text-zinc-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors duration-150"
+                      aria-label={`Remove ${item.name}`}
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </button>
                   </div>
                 ))}
               </div>

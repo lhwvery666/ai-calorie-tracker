@@ -79,8 +79,8 @@ export default async function StatsPage() {
       {/* Page Header */}
       <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md dark:bg-zinc-900/90 border-b border-gray-100 dark:border-zinc-800 px-4 py-4 flex items-center gap-2">
         <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">饮食统计</h1>
-        <span className="ml-auto text-sm text-gray-400 dark:text-gray-500">近 7 天</span>
+        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Nutrition Stats</h1>
+        <span className="ml-auto text-sm text-gray-400 dark:text-gray-500">Last 7 Days</span>
       </div>
 
       <main className="p-4 md:pt-8 space-y-4 md:space-y-6">
@@ -94,7 +94,7 @@ export default async function StatsPage() {
               <span className="text-xl font-bold text-gray-900 dark:text-white">
                 {avgCals.toLocaleString()}
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">日均热量</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Daily Avg</span>
             </CardContent>
           </Card>
 
@@ -112,7 +112,7 @@ export default async function StatsPage() {
                 {targetDiff > 0 ? "+" : ""}
                 {targetDiff.toLocaleString()}
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">vs 目标</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">vs Target</span>
             </CardContent>
           </Card>
 
@@ -124,7 +124,7 @@ export default async function StatsPage() {
                 {activeDays}
                 <span className="text-sm font-normal text-gray-400"> /7</span>
               </span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">记录天数</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">Days Logged</span>
             </CardContent>
           </Card>
         </div>
@@ -133,9 +133,9 @@ export default async function StatsPage() {
         <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400 flex items-center justify-between">
-              <span>每日热量摄入 (kcal)</span>
+              <span>Daily Calorie Intake (kcal)</span>
               <span className="text-xs font-normal text-emerald-600 dark:text-emerald-400">
-                目标 {user.targetKcal.toLocaleString()} kcal
+                Target {user.targetKcal.toLocaleString()} kcal
               </span>
             </CardTitle>
           </CardHeader>
@@ -148,7 +148,7 @@ export default async function StatsPage() {
         <Card className="border-gray-100 dark:border-zinc-800 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              每日明细
+              Daily Details
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0 divide-y divide-gray-100 dark:divide-zinc-800">
@@ -187,9 +187,9 @@ export default async function StatsPage() {
                   {/* Row 2: food summary — only shown when there are records */}
                   {day.foods.length > 0 && (
                     <div className="pl-14 pr-1">
-                      <p className="text-xs text-gray-400 dark:text-zinc-500 truncate">
-                        <span className="font-medium text-gray-500 dark:text-gray-400">吃了：</span>
-                        {day.foods.join("、")}
+                      <p className="text-xs text-gray-400 dark:text-zinc-500 whitespace-normal break-words line-clamp-2 leading-relaxed">
+                        <span className="font-medium text-gray-500 dark:text-gray-400">Had: </span>
+                        {day.foods.join(", ")}
                       </p>
                     </div>
                   )}
