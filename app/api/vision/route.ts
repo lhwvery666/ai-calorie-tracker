@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import OpenAI from "openai"
 
 // Vercel Hobby max function duration (seconds)
 export const maxDuration = 60
@@ -18,8 +18,8 @@ export interface FoodAnalysisResult {
 }
 
 // Concise prompt — fewer output tokens = faster response
-const PROMPT = `You are a nutritionist. Analyze every food item visible in the image.
-Return ONLY valid JSON — no markdown, no explanation, no reasoning:
+const PROMPT = `You are a professional nutritionist. Analyze every food item visible in the image.
+Return ONLY valid JSON — no markdown, no explanation, no extra text:
 {"items":[{"name":"ingredient name","weight_g":number,"calories_per_100g":number,"calories":number}],"total_calories":number}
 If no food is detected, return: {"items":[],"total_calories":0}`
 
@@ -29,65 +29,82 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as { image?: string }
     if (!body.image) {
-      return NextResponse.json({ success: false, error: "Missing 'image' field in request body." }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: "Missing 'image' field in request body." },
+        { status: 400 }
+      )
     }
     image = body.image
   } catch {
-    return NextResponse.json({ success: false, error: "Invalid JSON body." }, { status: 400 })
+    return NextResponse.json(
+      { success: false, error: "Invalid JSON body." },
+      { status: 400 }
+    )
   }
 
   // ── 2. Validate API key ─────────────────────────────────────────────────────
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) {
-    console.error("[vision] GEMINI_API_KEY is not set in environment variables.")
-    return NextResponse.json({ success: false, error: "Server misconfiguration: API key missing." }, { status: 500 })
+    console.error("[vision] OPENAI_API_KEY is not set in environment variables.")
+    return NextResponse.json(
+      { success: false, error: "Server misconfiguration: API key missing." },
+      { status: 500 }
+    )
   }
 
-  // ── 3. Extract base64 payload and MIME type ─────────────────────────────────
-  const base64Data = image.startsWith("data:") ? image.split(",")[1] : image
-  const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/)
-  const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as
-    | "image/jpeg"
-    | "image/png"
-    | "image/webp"
-    | "image/heic"
-    | "image/heif"
+  // ── 3. Ensure data URL prefix ───────────────────────────────────────────────
+  // Frontend may send a raw base64 string without the data: prefix
+  const imageUrl = image.startsWith("data:")
+    ? image
+    : `data:image/jpeg;base64,${image}`
 
-  // ── 4. Call Gemini ──────────────────────────────────────────────────────────
+  // ── 4. Call Qwen-VL via OpenAI-compatible SDK ───────────────────────────────
   let rawText: string
   try {
-    const genAI = new GoogleGenerativeAI(apiKey)
-    // gemini-2.0-flash-lite: current fast vision model, replaces deprecated 1.5-flash
-    // gemini-2.0-flash: has free tier (1500 req/day). "lite" has quota=0 on free tier.
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+    const client = new OpenAI({
+      apiKey,
+      baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    })
 
-    const result = await model.generateContent({
-      contents: [
+    const response = await client.chat.completions.create({
+      model: "qwen-vl-max",
+      messages: [
         {
           role: "user",
-          parts: [
-            { inlineData: { mimeType, data: base64Data } },
-            { text: PROMPT },
+          content: [
+            {
+              type: "image_url",
+              image_url: { url: imageUrl },
+            },
+            {
+              type: "text",
+              text: PROMPT,
+            },
           ],
         },
       ],
-      generationConfig: { responseMimeType: "application/json" },
+      response_format: { type: "json_object" },
+      max_tokens: 800,
     })
 
-    rawText = result.response.text().trim()
-    console.log("[vision] Raw Gemini response:", rawText.slice(0, 300))
-  } catch (geminiErr) {
-    // Log every available property so Vercel logs tell us exactly what went wrong
-    const name    = geminiErr instanceof Error ? geminiErr.name    : "UnknownError"
-    const message = geminiErr instanceof Error ? geminiErr.message : String(geminiErr)
-    const status  = (geminiErr as Record<string, unknown>).status  ?? "n/a"
-    const stack   = geminiErr instanceof Error ? geminiErr.stack   : ""
-    console.error("[vision] Gemini API call failed:")
+    rawText = response.choices[0]?.message?.content?.trim() ?? ""
+    console.log("[vision] Qwen-VL raw response:", rawText.slice(0, 300))
+
+    if (!rawText) {
+      return NextResponse.json(
+        { success: false, error: "AI returned an empty response. Please try again." },
+        { status: 502 }
+      )
+    }
+  } catch (apiErr) {
+    const name    = apiErr instanceof Error ? apiErr.name    : "UnknownError"
+    const message = apiErr instanceof Error ? apiErr.message : String(apiErr)
+    const status  = (apiErr as Record<string, unknown>).status ?? "n/a"
+    console.error("[vision] Qwen-VL API call failed:")
     console.error("  name   :", name)
     console.error("  message:", message)
     console.error("  status :", status)
-    console.error("  stack  :", stack)
-    // 429 = quota exceeded — return a user-friendly message
+
     if (status === 429) {
       return NextResponse.json(
         { success: false, error: "AI quota exceeded. Please wait a moment and try again." },
@@ -98,7 +115,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: `Gemini API error (${status}): ${message}`,
+        error: `AI service error (${status}): ${message}`,
         detail: { name, status },
       },
       { status: 502 }
@@ -115,14 +132,14 @@ export async function POST(req: NextRequest) {
   try {
     parsed = JSON.parse(cleanedText) as FoodAnalysisResult
   } catch (parseErr) {
-    console.error("[vision] JSON parse failed. Cleaned text was:", cleanedText, parseErr)
+    console.error("[vision] JSON parse failed. Cleaned text:", cleanedText, parseErr)
     return NextResponse.json(
       { success: false, error: "AI response format error — please try again." },
       { status: 422 }
     )
   }
 
-  // ── 6. Validate items ───────────────────────────────────────────────────────
+  // ── 6. Validate result ──────────────────────────────────────────────────────
   if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
     return NextResponse.json(
       { success: false, error: "No food detected. Please use a clearer photo." },
