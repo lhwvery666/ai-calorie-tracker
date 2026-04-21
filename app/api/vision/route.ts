@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
     // gemini-2.0-flash-lite: current fast vision model, replaces deprecated 1.5-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
+    // gemini-2.0-flash: has free tier (1500 req/day). "lite" has quota=0 on free tier.
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
     const result = await model.generateContent({
       contents: [
@@ -86,6 +87,14 @@ export async function POST(req: NextRequest) {
     console.error("  message:", message)
     console.error("  status :", status)
     console.error("  stack  :", stack)
+    // 429 = quota exceeded — return a user-friendly message
+    if (status === 429) {
+      return NextResponse.json(
+        { success: false, error: "AI quota exceeded. Please wait a moment and try again." },
+        { status: 429 }
+      )
+    }
+
     return NextResponse.json(
       {
         success: false,

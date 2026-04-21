@@ -157,9 +157,13 @@ export function BottomNav() {
           25
         )
 
-        // Explicit HTTP-level guard — catches 413 / 5xx before JSON parsing
+        // Explicit HTTP-level guard — catches 413 / 429 / 5xx before JSON parsing
         if (visionRes.status === 413) {
           toast.error("Image is too large even after compression. Please use a smaller photo.")
+          return
+        }
+        if (visionRes.status === 429) {
+          toast.error("AI quota exceeded — please wait a moment and try again.")
           return
         }
         if (!visionRes.ok && visionRes.status >= 500) {
