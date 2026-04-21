@@ -16,10 +16,11 @@ export interface FoodAnalysisResult {
   total_calories: number
 }
 
-const PROMPT = `你是一位专业营养师。请仔细分析图片中所有食物，将每种食材单独拆解列出，估算重量与热量。
-严格按以下 JSON 格式返回，绝对不能包含任何 Markdown 标记或解释文字：
-{"items":[{"name":"食材名称","weight_g":估算重量纯数字,"calories_per_100g":每100g热量纯数字,"calories":当前重量对应热量纯数字}],"total_calories":所有食材热量加总纯数字}
-如果图片中不包含食物，请返回 {"items":[],"total_calories":0}。`
+// Concise prompt — fewer tokens = faster response
+const PROMPT = `Nutritionist. Analyze food in image. Be concise. Return JSON immediately without extra descriptions. Skip reasoning.
+Output ONLY this JSON (no markdown, no explanation):
+{"items":[{"name":"ingredient","weight_g":number,"calories_per_100g":number,"calories":number}],"total_calories":number}
+No food detected? Return {"items":[],"total_calories":0}.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     // ── 调用 Gemini ──────────────────────────────────────────────────────────
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" })
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
     const result = await model.generateContent({
       contents: [

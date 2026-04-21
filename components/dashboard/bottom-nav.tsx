@@ -92,14 +92,18 @@ export function BottomNav() {
     }
   }
 
-  /** Compress an image File to a JPEG data-URL ≤ maxKB kilobytes. */
-  const compressImage = (file: File, maxKB = 900): Promise<string> =>
+  /**
+   * Compress an image to ≤ maxKB at MAX_DIM pixels.
+   * 800px / quality 0.5 is plenty for AI food recognition and keeps
+   * payload well under Vercel's 4.5 MB serverless limit.
+   */
+  const compressImage = (file: File, maxKB = 400): Promise<string> =>
     new Promise((resolve, reject) => {
       const img = new Image()
       const objectUrl = URL.createObjectURL(file)
       img.onload = () => {
         URL.revokeObjectURL(objectUrl)
-        const MAX_DIM = 1280
+        const MAX_DIM = 800
         let { width, height } = img
         if (width > MAX_DIM || height > MAX_DIM) {
           if (width > height) {
@@ -117,10 +121,10 @@ export function BottomNav() {
         if (!ctx) { reject(new Error("Canvas not supported")); return }
         ctx.drawImage(img, 0, 0, width, height)
 
-        // Iteratively lower quality until size is within limit
-        let quality = 0.85
+        // Start at 0.5 quality; lower further if still oversized
+        let quality = 0.5
         let dataUrl = canvas.toDataURL("image/jpeg", quality)
-        while (dataUrl.length > maxKB * 1024 * 1.37 && quality > 0.3) {
+        while (dataUrl.length > maxKB * 1024 * 1.37 && quality > 0.2) {
           quality -= 0.1
           dataUrl = canvas.toDataURL("image/jpeg", quality)
         }
@@ -142,7 +146,7 @@ export function BottomNav() {
     // Compress then send — avoids Vercel 4.5 MB request-body limit (413)
     compressImage(file).then(async (base64String) => {
       try {
-        // Step 1: AI vision recognition（20s 超时兜底）
+        // Step 1: AI vision recognition — 25 s hard timeout
         const visionRes = await fetchWithTimeout(
           "/api/vision",
           {
@@ -150,7 +154,7 @@ export function BottomNav() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ image: base64String }),
           },
-          20
+          25
         )
 
         // Explicit HTTP-level guard — catches 413 / 5xx before JSON parsing
@@ -186,7 +190,7 @@ export function BottomNav() {
         setIsConfirmOpen(true)
       } catch (err) {
         if (err instanceof Error && err.message === "REQUEST_TIMED_OUT") {
-          toast.error("Request timed out. Please check your connection and try again.")
+          toast.error("AI is taking too long — please try a simpler or smaller photo.")
         } else {
           const message = err instanceof Error ? err.message : "Unknown error"
           toast.error(`Operation failed: ${message}`)
