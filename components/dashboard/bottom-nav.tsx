@@ -92,6 +92,44 @@ export function BottomNav() {
     }
   }
 
+  /** Compress an image File to a JPEG data-URL ≤ maxKB kilobytes. */
+  const compressImage = (file: File, maxKB = 900): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const img = new Image()
+      const objectUrl = URL.createObjectURL(file)
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl)
+        const MAX_DIM = 1280
+        let { width, height } = img
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width)
+            width = MAX_DIM
+          } else {
+            width = Math.round((width * MAX_DIM) / height)
+            height = MAX_DIM
+          }
+        }
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        if (!ctx) { reject(new Error("Canvas not supported")); return }
+        ctx.drawImage(img, 0, 0, width, height)
+
+        // Iteratively lower quality until size is within limit
+        let quality = 0.85
+        let dataUrl = canvas.toDataURL("image/jpeg", quality)
+        while (dataUrl.length > maxKB * 1024 * 1.37 && quality > 0.3) {
+          quality -= 0.1
+          dataUrl = canvas.toDataURL("image/jpeg", quality)
+        }
+        resolve(dataUrl)
+      }
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image load failed")) }
+      img.src = objectUrl
+    })
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -101,11 +139,8 @@ export function BottomNav() {
 
     setIsAnalyzing(true)
 
-    // Convert the image File to a Base64 Data URL via FileReader
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const base64String = reader.result as string
-
+    // Compress then send — avoids Vercel 4.5 MB request-body limit (413)
+    compressImage(file).then(async (base64String) => {
       try {
         // Step 1: AI vision recognition（20s 超时兜底）
         const visionRes = await fetchWithTimeout(
@@ -117,6 +152,16 @@ export function BottomNav() {
           },
           20
         )
+
+        // Explicit HTTP-level guard — catches 413 / 5xx before JSON parsing
+        if (visionRes.status === 413) {
+          toast.error("Image is too large even after compression. Please use a smaller photo.")
+          return
+        }
+        if (!visionRes.ok && visionRes.status >= 500) {
+          toast.error(`Server error (${visionRes.status}). Please try again.`)
+          return
+        }
 
         const visionJson = (await visionRes.json()) as {
           success: boolean
@@ -149,14 +194,11 @@ export function BottomNav() {
       } finally {
         setIsAnalyzing(false)
       }
-    }
-
-    reader.onerror = () => {
-      alert("Failed to read image. Please try again.")
+    }).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : "Unknown error"
+      toast.error(`Failed to read image: ${message}`)
       setIsAnalyzing(false)
-    }
-
-    reader.readAsDataURL(file)
+    })
   }
 
   return (
