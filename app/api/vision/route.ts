@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
+// Vercel Hobby max function duration (seconds)
 export const maxDuration = 60
 
-// ── Shared data types (mirrored in ai-confirmation-modal.tsx) ─────────────────
+// ── Shared data types ─────────────────────────────────────────────────────────
 export interface FoodItem {
   name: string
   weight_g: number
@@ -16,40 +17,48 @@ export interface FoodAnalysisResult {
   total_calories: number
 }
 
-// Concise prompt — fewer tokens = faster response
-const PROMPT = `Nutritionist. Analyze food in image. Be concise. Return JSON immediately without extra descriptions. Skip reasoning.
-Output ONLY this JSON (no markdown, no explanation):
-{"items":[{"name":"ingredient","weight_g":number,"calories_per_100g":number,"calories":number}],"total_calories":number}
-No food detected? Return {"items":[],"total_calories":0}.`
+// Concise prompt — fewer output tokens = faster response
+const PROMPT = `You are a nutritionist. Analyze every food item visible in the image.
+Return ONLY valid JSON — no markdown, no explanation, no reasoning:
+{"items":[{"name":"ingredient name","weight_g":number,"calories_per_100g":number,"calories":number}],"total_calories":number}
+If no food is detected, return: {"items":[],"total_calories":0}`
 
 export async function POST(req: NextRequest) {
+  // ── 1. Parse request ────────────────────────────────────────────────────────
+  let image: string
   try {
-    const { image } = (await req.json()) as { image: string }
-
-    if (!image) {
-      return NextResponse.json({ error: "缺少 image 字段" }, { status: 400 })
+    const body = (await req.json()) as { image?: string }
+    if (!body.image) {
+      return NextResponse.json({ success: false, error: "Missing 'image' field in request body." }, { status: 400 })
     }
+    image = body.image
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid JSON body." }, { status: 400 })
+  }
 
-    const apiKey = process.env.GEMINI_API_KEY
-    if (!apiKey) {
-      return NextResponse.json({ error: "服务端 GEMINI_API_KEY 未配置" }, { status: 500 })
-    }
+  // ── 2. Validate API key ─────────────────────────────────────────────────────
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    console.error("[vision] GEMINI_API_KEY is not set in environment variables.")
+    return NextResponse.json({ success: false, error: "Server misconfiguration: API key missing." }, { status: 500 })
+  }
 
-    // 提取 base64 data（去掉 "data:image/jpeg;base64," 前缀）
-    const base64Data = image.startsWith("data:") ? image.split(",")[1] : image
+  // ── 3. Extract base64 payload and MIME type ─────────────────────────────────
+  const base64Data = image.startsWith("data:") ? image.split(",")[1] : image
+  const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/)
+  const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as
+    | "image/jpeg"
+    | "image/png"
+    | "image/webp"
+    | "image/heic"
+    | "image/heif"
 
-    // 提取 MIME type（默认 jpeg）
-    const mimeMatch = image.match(/^data:(image\/[a-zA-Z+]+);base64,/)
-    const mimeType = (mimeMatch?.[1] ?? "image/jpeg") as
-      | "image/jpeg"
-      | "image/png"
-      | "image/webp"
-      | "image/heic"
-      | "image/heif"
-
-    // ── 调用 Gemini ──────────────────────────────────────────────────────────
+  // ── 4. Call Gemini ──────────────────────────────────────────────────────────
+  let rawText: string
+  try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // gemini-2.0-flash-lite: current fast vision model, replaces deprecated 1.5-flash
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" })
 
     const result = await model.generateContent({
       contents: [
@@ -64,47 +73,61 @@ export async function POST(req: NextRequest) {
       generationConfig: { responseMimeType: "application/json" },
     })
 
-    const rawText = result.response.text().trim()
-
-    // Strip any Markdown fences the model may still emit despite responseMimeType
-    const cleanedText = rawText
-      .replace(/```json/gi, "")
-      .replace(/```/g, "")
-      .trim()
-
-    let parsed: FoodAnalysisResult
-    try {
-      parsed = JSON.parse(cleanedText) as FoodAnalysisResult
-    } catch (parseErr) {
-      console.error("[vision] JSON parse failed. Raw text:", cleanedText, parseErr)
-      return NextResponse.json(
-        { success: false, error: "AI response format error — please try again." },
-        { status: 422 }
-      )
-    }
-
-    if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
-      return NextResponse.json(
-        { success: false, error: "No food detected. Please use a clearer photo." },
-        { status: 422 }
-      )
-    }
-
-    // 以防模型漏算 total_calories，在后端校正一次
-    const total_calories = Math.round(
-      parsed.items.reduce((sum, item) => sum + item.calories, 0)
-    )
-
-    return NextResponse.json({
-      success: true,
-      data: { items: parsed.items, total_calories },
-    })
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error"
-    console.error("[vision] Request failed:", message)
+    rawText = result.response.text().trim()
+    console.log("[vision] Raw Gemini response:", rawText.slice(0, 300))
+  } catch (geminiErr) {
+    // Log every available property so Vercel logs tell us exactly what went wrong
+    const name    = geminiErr instanceof Error ? geminiErr.name    : "UnknownError"
+    const message = geminiErr instanceof Error ? geminiErr.message : String(geminiErr)
+    const status  = (geminiErr as Record<string, unknown>).status  ?? "n/a"
+    const stack   = geminiErr instanceof Error ? geminiErr.stack   : ""
+    console.error("[vision] Gemini API call failed:")
+    console.error("  name   :", name)
+    console.error("  message:", message)
+    console.error("  status :", status)
+    console.error("  stack  :", stack)
     return NextResponse.json(
-      { success: false, error: "Server error. Please try again.", detail: message },
-      { status: 500 }
+      {
+        success: false,
+        error: `Gemini API error (${status}): ${message}`,
+        detail: { name, status },
+      },
+      { status: 502 }
     )
   }
+
+  // ── 5. Parse JSON ───────────────────────────────────────────────────────────
+  const cleanedText = rawText
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim()
+
+  let parsed: FoodAnalysisResult
+  try {
+    parsed = JSON.parse(cleanedText) as FoodAnalysisResult
+  } catch (parseErr) {
+    console.error("[vision] JSON parse failed. Cleaned text was:", cleanedText, parseErr)
+    return NextResponse.json(
+      { success: false, error: "AI response format error — please try again." },
+      { status: 422 }
+    )
+  }
+
+  // ── 6. Validate items ───────────────────────────────────────────────────────
+  if (!Array.isArray(parsed.items) || parsed.items.length === 0) {
+    return NextResponse.json(
+      { success: false, error: "No food detected. Please use a clearer photo." },
+      { status: 422 }
+    )
+  }
+
+  // Recalculate total on the backend in case the model mis-summed
+  const total_calories = Math.round(
+    parsed.items.reduce((sum, item) => sum + item.calories, 0)
+  )
+
+  return NextResponse.json({
+    success: true,
+    data: { items: parsed.items, total_calories },
+  })
 }
